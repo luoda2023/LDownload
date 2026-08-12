@@ -873,6 +873,7 @@ class _NavItemState extends State<_NavItem> {
     final c = AppColors.of(context);
     final m = AppMetrics.of(context);
     final selected = widget.isSelected;
+    final count = widget.count; // 局部变量：公开 final 字段不可 null-promote
     final Widget? statusDot = widget.showActivityDot
         ? Container(
             width: 6,
@@ -964,10 +965,10 @@ class _NavItemState extends State<_NavItem> {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  if (widget.count != null && widget.count > 0) ...[
+                  if (count != null && count > 0) ...[
                     const SizedBox(width: 8),
                     Text(
-                      widget.count.toString(),
+                      count.toString(),
                       style: TextStyle(
                         fontSize: 11,
                         color: selected ? c.accent : c.textMuted,
