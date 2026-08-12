@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:window_manager/window_manager.dart';
 import '../bindings/bindings.dart';
 import '../models/custom_category.dart';
@@ -146,6 +147,10 @@ class _SidebarState extends State<Sidebar> {
                         _buildRssSection(ctrl, s, c),
                         const SizedBox(height: 6),
                       ],
+                      if (sp.showSidebarRss) ...[
+                        _buildAuxToolsSection(ctrl, s, c),
+                        const SizedBox(height: 6),
+                      ],
                       if (sp.showSidebarCategory)
                         _buildCategorySection(ctrl, s, c),
                     ],
@@ -232,7 +237,7 @@ class _SidebarState extends State<Sidebar> {
               TextSpan(
                 children: [
                   TextSpan(
-                    text: 'Flux',
+                    text: 'L',
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -241,7 +246,7 @@ class _SidebarState extends State<Sidebar> {
                     ),
                   ),
                   TextSpan(
-                    text: 'Down',
+                    text: 'Download',
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
@@ -421,6 +426,34 @@ class _SidebarState extends State<Sidebar> {
                   _showDeleteRssDialog(context, rss, s, c, source),
             ),
         ],
+      ],
+    );
+  }
+
+  // ─────────────────────────────────────────────
+  // 辅助工具区块（折叠 + SVIP 入口等站内跳转）
+  // ─────────────────────────────────────────────
+
+  Widget _buildAuxToolsSection(DownloadController ctrl, S s, AppColors c) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _CollapsibleSectionHeader(
+          title: s.sidebarAuxTools,
+          expanded: widget.settingsProvider.sidebarRssExpanded,
+          c: c,
+          onToggle: () {},
+        ),
+        const SizedBox(height: 4),
+        _NavItem(
+          icon: LucideIcons.crown,
+          label: s.svipQualification,
+          isSelected: false,
+          onTap: () => launchUrl(
+            Uri.parse('http://dicad.cn/down'),
+            mode: LaunchMode.externalApplication,
+          ),
+        ),
       ],
     );
   }

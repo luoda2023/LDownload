@@ -1241,6 +1241,8 @@
   "groupDetailNoMembers": "暂无成员",
   "groupMemberOfLabel": "所属任务组",
   "sidebarRss": "RSS 订阅",
+  "sidebarAuxTools": "辅助工具",
+  "svipQualification": "SVIP 资格",
   "showSidebarRss": "显示 RSS",
   "showSidebarRssDesc": "在侧边栏显示 RSS 订阅区块",
   "rssSidebarEmptyHint": "还没有订阅 —— 点 + 粘贴一个 feed 链接。",

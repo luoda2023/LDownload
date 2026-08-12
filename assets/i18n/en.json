@@ -1241,6 +1241,8 @@
   "groupDetailNoMembers": "No members",
   "groupMemberOfLabel": "Task group",
   "sidebarRss": "RSS",
+  "sidebarAuxTools": "Tools",
+  "svipQualification": "SVIP Activation",
   "showSidebarRss": "Show RSS",
   "showSidebarRssDesc": "Show the RSS subscriptions section in the sidebar",
   "rssSidebarEmptyHint": "No subscriptions yet — click + and paste a feed URL.",

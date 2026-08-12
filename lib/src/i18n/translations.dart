@@ -1867,6 +1867,12 @@ class S {
   String get rssSourceLabel => _r('rssSourceLabel');
 
   // ─────────────────────────────────────────────
+  // 辅助工具（站内跳转入口）
+  // ─────────────────────────────────────────────
+  String get sidebarAuxTools => _r('sidebarAuxTools');
+  String get svipQualification => _r('svipQualification');
+
+  // ─────────────────────────────────────────────
   // 通知 / Webhook（免费自托管推送）
   // ─────────────────────────────────────────────
   String get settingsCatNotify => _r('settingsCatNotify');
