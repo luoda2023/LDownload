@@ -1,5 +1,3 @@
-import 'package:flutter/foundation.dart';
-
 /// Application version injected at build time.
 const _appVersion = String.fromEnvironment('APP_VERSION', defaultValue: 'dev');
 

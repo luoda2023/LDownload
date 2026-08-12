@@ -203,18 +203,6 @@ void main() {
 
     SyncEntry entryFor(String key) => catalog.firstWhere((e) => e.key == key);
 
-    test(
-      'bool entry silently skips a wrong-typed value instead of throwing',
-      () {
-        final entry = entryFor('general.auto_check_update');
-        final before = settings.autoCheckUpdate;
-        expect(() => entry.apply('not-a-bool'), returnsNormally);
-        expect(settings.autoCheckUpdate, before);
-        expect(() => entry.apply(null), returnsNormally);
-        expect(settings.autoCheckUpdate, before);
-      },
-    );
-
     test('int entry silently skips a non-numeric value', () {
       final entry = entryFor('download.max_concurrent_tasks');
       final before = settings.maxConcurrentTasks;

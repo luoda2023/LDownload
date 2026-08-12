@@ -857,7 +857,7 @@
   "extensionInstallEdge": "安装 Edge 扩展",
   "extensionInstallFirefox": "安装 Firefox 扩展",
   "extensionInstalling": "正在安装...",
-  "extensionInstallSuccess": "已启动浏览器并加载扩展，请按浏览器提示完成安装。",
+  "extensionInstallSuccess": "已打开浏览器。Chrome/Edge 请在扩展管理页开启「开发者模式」→「加载已解压的扩展程序」，选择数据目录下的 extensions/chrome-mv3；Firefox 请在 about:debugging 点「临时加载附加组件」，选择 extensions/firefox-mv2 目录。",
   "extensionInstallBrowserNotFound": "未检测到 {browser}，请确认已安装。",
   "extensionInstallAssetMissing": "扩展包未内嵌到当前版本，请从 GitHub Release 手动下载离线安装包。",
   "extensionInstallNotSupported": "当前平台暂不支持一键安装，请从 GitHub Release 手动下载。",

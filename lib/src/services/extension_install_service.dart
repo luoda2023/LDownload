@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 
 import 'platform_utils.dart';
+import '../log_service.dart';
 
 /// 浏览器扩展内置安装服务。
 ///
@@ -19,6 +20,11 @@ class ExtensionInstallService {
   static const String _chromeAsset = 'assets/extensions/ldownload-chrome.zip';
   static const String _firefoxAsset = 'assets/extensions/ldownload-firefox.xpi';
 
+  // Chrome 扩展固定 ID：meleenglfggcmcajknpeeeiobnpfmahc（侧载含 key，ID 稳定）
+  // Firefox 扩展 ID：ldownload@ldownload.app
+  // 两 ID 均硬编码于 native/hub/src/nmh_registry.rs 的 allowed_origins /
+  // allowed_extensions，勿改此处值（此处仅为文档性常量，不参与安装逻辑）。
+  // ignore: unused_field, unused_field
   static const String _chromeId = 'meleenglfggcmcajknpeeeiobnpfmahc';
   static const String _firefoxId = 'ldownload@ldownload.app';
 
@@ -34,29 +40,48 @@ class ExtensionInstallService {
     return _installChromium('edge', 'Edge');
   }
 
-  /// 安装 Firefox 扩展（侧载 XPI）。
+  /// 安装 Firefox 扩展。
+  ///
+  /// 双路线：
+  /// 1. 若 assets 内嵌了签名 XPI（CI 正常产出时）→ 解压到目录，打开
+  ///    `about:debugging` 引导「临时加载附加组件」（Firefox 109+ 仍支持
+  ///    about:debugging 临时加载未签名扩展；`file://*.xpi` 直开安装已被
+  ///    Firefox 移除，旧实现不可用）。
+  /// 2. 若 XPI 缺失（AMO 签名凭据失效导致 CI 未产出，v10.0.3/v10.0.4 实际
+  ///    如此）→ 同样解压目录 + about:debugging 引导。WebExtension 本体
+  ///    是 zip，可直接解压为目录加载。
   static Future<InstallResult> installFirefox() async {
     if (!Platform.isWindows && !Platform.isMacOS && !Platform.isLinux) {
       return InstallResult.notSupported;
     }
 
+    // 读取内嵌 XPI（缺失时也继续——只要扩展本体在，临时加载不依赖签名）。
     final bytes = await _loadAssetBytes(_firefoxAsset);
-    if (bytes == null) return InstallResult.assetMissing;
-
     final dataDir = resolveDataDir();
-    final extDir = Directory(p.join(dataDir, 'extensions'));
-    await extDir.create(recursive: true);
+    final extRoot = Directory(p.join(dataDir, 'extensions', 'firefox-mv2'));
+    await extRoot.create(recursive: true);
+    await _clearDirectory(extRoot);
 
-    final xpiPath = p.join(extDir.path, 'ldownload-firefox.xpi');
-    await File(xpiPath).writeAsBytes(bytes);
+    if (bytes != null) {
+      // XPI 本质是 zip：解压为目录供 about:debugging 临时加载。
+      try {
+        final archive = ZipDecoder().decodeBytes(bytes);
+        extractArchiveToDisk(archive, extRoot.path);
+      } catch (e) {
+        logInfo('extension_install', 'Firefox XPI 解压失败: $e');
+        // 解压失败视为资源损坏。
+        return InstallResult.assetMissing;
+      }
+    }
 
     final firefoxExe = await _findBrowserExe('firefox');
     if (firefoxExe == null) {
       return InstallResult.browserNotFound;
     }
 
-    // Firefox 打开 file:///*.xpi 会触发安装提示。
-    await Process.run(firefoxExe, [Uri.file(xpiPath).toString()]);
+    // 打开 about:debugging，用户在 UI 引导下点「临时加载附加组件」→ 选择
+    // 解压目录（含 manifest.json）。比 file://*.xpi 可靠（后者已被移除）。
+    await Process.run(firefoxExe, ['about:debugging']);
     return InstallResult.success;
   }
 
@@ -93,8 +118,14 @@ class ExtensionInstallService {
     }
 
     // 启动浏览器并加载扩展。
-    // 若浏览器已运行，可能无法重新加载；此时提示用户关闭浏览器再点一次。
+    // 注意：Chrome 137+ 移除了 `--load-extension` 命令行侧载（2025-06），
+    // 该参数在旧版仍有效。因此双管齐下：
+    //   1) 传 --load-extension（旧版 Chrome / 部分 Edge 分支生效）
+    //   2) 同时打开 chrome://extensions，引导用户开启「开发者模式」手动
+    //      「加载已解压的扩展程序」——新版本 Chrome/Edge 的唯一可靠路径。
+    // 若浏览器已运行，新进程参数可能被忽略；引导页仍会打开。
     await Process.run(exe, ['--load-extension=$loadDir']);
+    await Process.run(exe, [browserKey == 'edge' ? 'edge://extensions' : 'chrome://extensions']);
     return InstallResult.success;
   }
 

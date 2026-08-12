@@ -13,7 +13,6 @@ import 'screens/mobile_settings_screen.dart';
 import 'services/mobile_storage_service.dart';
 import 'screens/mobile_tasks_screen.dart';
 import 'services/share_intent_service.dart';
-import 'mobile_ui.dart';
 import 'sheets/mobile_new_download_sheet.dart';
 
 /// 移动端根壳：任务列表主屏 + 右上角设置入口（push 路由进入设置页）

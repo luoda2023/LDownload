@@ -857,7 +857,7 @@
   "extensionInstallEdge": "Install Edge Extension",
   "extensionInstallFirefox": "Install Firefox Extension",
   "extensionInstalling": "Installing...",
-  "extensionInstallSuccess": "Browser launched with the extension loaded. Please follow the browser prompt to finish installation.",
+  "extensionInstallSuccess": "Browser opened. For Chrome/Edge: enable Developer mode in the extensions page, click 'Load unpacked', and pick the extensions/chrome-mv3 folder in the app data directory. For Firefox: open about:debugging, click 'Load Temporary Add-on', and pick the extensions/firefox-mv2 folder.",
   "extensionInstallBrowserNotFound": "{browser} was not detected. Please make sure it is installed.",
   "extensionInstallAssetMissing": "Extension package is not bundled in this build. Please download the offline package from GitHub Release.",
   "extensionInstallNotSupported": "One-click installation is not supported on this platform. Please download from GitHub Release.",

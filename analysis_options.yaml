@@ -9,6 +9,13 @@
 # packages, and plugins designed to encourage good coding practices.
 include: package:flutter_lints/flutter.yaml
 
+analyzer:
+  exclude:
+    # vendored 本地包的 example 是独立演示工程（引用的示例文件不随主仓分发），
+    # 不在主程序构建/分析范围；排除以免 flutter analyze 误报 uri_does_not_exist。
+    - packages/tray_manager_local/example/**
+    - packages/**/example/**
+
 linter:
   # The lint rules applied to this project can be customized in the
   # section below to disable rules from the `package:flutter_lints/flutter.yaml`

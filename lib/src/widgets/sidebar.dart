@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -831,7 +830,9 @@ class _NavItem extends StatefulWidget {
   final int? count;
   final bool isSelected;
   final bool showActivityDot;
-  /// 设备在线态圆点（null=不显示；true=实心绿/在线；false=空心灰/离线）。
+  // ignore: unused_element_parameter
+  // 设备在线态圆点（null=不显示；true=实心绿/在线；false=空心灰/离线）。
+  // 当前侧栏无设备区块实例化此参数（设备区块曾移除），保留实现供将来复用。
   final bool? isOnline;
   final VoidCallback onTap;
 

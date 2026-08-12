@@ -160,7 +160,11 @@ class FluxThemeTokens {
   // ═══════════════════════════════════════════════════════════
 
   /// 默认暗色主题（Apple 风格深灰）
-  static FluxThemeTokens defaultDark({Color accent = const Color(0xFF3B82F6)}) {
+  ///
+  /// 默认 accent 用 Indigo-600（#4F46E5）而非 Bootstrap 系蓝（#3B82F6）：
+  /// 后者是 AI 生成的 UI 最典型模板色（taste-skill 禁令首位）。Indigo 有
+  /// 品牌辨识度、深色底上对比更稳，且用户可在设置里自由改 accent。
+  static FluxThemeTokens defaultDark({Color accent = const Color(0xFF4F46E5)}) {
     final hsl = HSLColor.fromColor(accent);
     final hover = hsl
         .withLightness((hsl.lightness + 0.08).clamp(0.0, 1.0))
@@ -211,9 +215,9 @@ class FluxThemeTokens {
     );
   }
 
-  /// 默认亮色主题
+  /// 默认亮色主题（Indigo 主色，非模板蓝；背景暖白去「灰底白卡」扁平感）。
   static FluxThemeTokens defaultLight({
-    Color accent = const Color(0xFF3B82F6),
+    Color accent = const Color(0xFF4F46E5),
   }) {
     final hsl = HSLColor.fromColor(accent);
     final hover = hsl
