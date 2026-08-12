@@ -629,7 +629,10 @@ jobs:
             --source-dir ldownload/.output/firefox-mv2 \
             --artifacts-dir build/extension \
             --overwrite-dest
-          ZIP_FILE=$(ls build/extension/*.zip 2>/dev/null | head -1)
+          # ⚠️ 只匹配 web-ext build 的产出（ldownload-<version>.zip，来自 package.json
+          # 的 name 字段），绝不能匹配同目录里的 LDownload-*-chrome.zip——否则 mv 会把
+          # Chrome 扩展包改名吃掉，导致 Upload Chrome artifact 失败。
+          ZIP_FILE=$(ls build/extension/ldownload-*.zip 2>/dev/null | head -1)
           if [ -n "$ZIP_FILE" ]; then
             mv "$ZIP_FILE" "build/extension/LDownload-${VERSION}-firefox.xpi"
             echo "Unsigned Firefox XPI ready: LDownload-${VERSION}-firefox.xpi"
