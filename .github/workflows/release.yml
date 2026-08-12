@@ -182,6 +182,24 @@ jobs:
       - name: Install Flutter dependencies
         run: flutter pub get
 
+      # rinf 生成的 Dart 绑定（lib/src/bindings/）被 gitignore，不随仓分发；
+      # flutter analyze/test 前必须先 rinf gen 生成（与各构建 job 同步骤）。
+      - name: Install Rinf CLI
+        shell: bash
+        env:
+          CARGO_HTTP_MULTIPLEXING: "false"
+          CARGO_NET_RETRY: "10"
+        run: |
+          for i in 1 2 3; do
+            cargo install --force rinf_cli@8.9.0 && exit 0
+            echo "cargo install failed (attempt $i), retrying in 15s..."
+            sleep 15
+          done
+          exit 1
+
+      - name: Generate Rinf bindings
+        run: rinf gen
+
       - name: Flutter analyze
         run: flutter analyze
 
