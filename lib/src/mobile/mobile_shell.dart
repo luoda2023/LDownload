@@ -6,6 +6,7 @@ import '../bindings/bindings.dart';
 import '../i18n/locale_provider.dart';
 import '../models/download_controller.dart';
 import '../models/settings_provider.dart';
+import '../theme/app_colors.dart';
 import '../theme/app_metrics.dart';
 import '../theme/theme_provider.dart';
 import 'screens/mobile_settings_screen.dart';
