@@ -11,7 +11,7 @@ fn main() {
     let pubspec = Path::new(&manifest_dir).join("../../pubspec.yaml");
     println!("cargo:rerun-if-changed={}", pubspec.display());
 
-    // pubspec 版本形如 `version: 10.0.1+1`，取 `+` 前的语义版本。
+    // pubspec 版本形如 `version: 10.0.2+1`，取 `+` 前的语义版本。
     let version = fs::read_to_string(&pubspec)
         .ok()
         .and_then(|text| {
