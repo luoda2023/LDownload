@@ -2287,6 +2287,7 @@ dependencies = [
  "regex",
  "reqwest",
  "rquickjs",
+ "rustls",
  "serde",
  "serde_json",
  "sha1 0.10.6",
@@ -2300,6 +2301,7 @@ dependencies = [
  "ts2mp4",
  "url",
  "uuid",
+ "webpki-roots",
  "windows-sys 0.59.0",
  "winreg",
  "x25519-dalek",
@@ -3668,6 +3670,7 @@ version = "0.23.36"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c665f33d38cea657d9614f766881e4d510e0eda4239891eea56b4cadcf01801b"
 dependencies = [
+ "log",
  "once_cell",
  "ring",
  "rustls-pki-types",
@@ -4254,6 +4257,7 @@ dependencies = [
  "futures-lite",
  "lazy-regex",
  "log",
+ "rustls",
  "thiserror 2.0.18",
 ]
 

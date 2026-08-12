@@ -819,10 +819,17 @@ class DownloadTask {
   /// 协议类型标识
   String get protocolLabel {
     final lower = url.toLowerCase();
-    if (lower.startsWith('magnet:')) return 'BT';
-    if (lower.startsWith('torrent-file://')) return 'BT';
+    if (lower.startsWith('magnet:') || lower.startsWith('torrent-file://')) {
+      return 'BT';
+    }
     if (lower.startsWith('ftp://')) return 'FTP';
+    if (lower.startsWith('ftps://') || lower.startsWith('ftpes://')) {
+      return 'FTPS';
+    }
     if (lower.startsWith('ed2k://')) return 'ED2K';
+    if (lower.startsWith('mms://') || lower.startsWith('mmst://')) return 'MMS';
+    if (lower.startsWith('rtsp://') || lower.startsWith('rtsps://')) return 'RTSP';
+    if (lower.startsWith('rtmp://') || lower.startsWith('rtmps://')) return 'RTMP';
     return 'HTTP';
   }
 
@@ -973,7 +980,13 @@ String _protocolToken(String url) {
     return 'BT';
   }
   if (lower.startsWith('ftp://')) return 'FTP';
+  if (lower.startsWith('ftps://') || lower.startsWith('ftpes://')) {
+    return 'FTPS';
+  }
   if (lower.startsWith('ed2k://')) return 'ED2K';
+  if (lower.startsWith('mms://') || lower.startsWith('mmst://')) return 'MMS';
+  if (lower.startsWith('rtsp://') || lower.startsWith('rtsps://')) return 'RTSP';
+  if (lower.startsWith('rtmp://') || lower.startsWith('rtmps://')) return 'RTMP';
   return 'HTTP';
 }
 

@@ -161,10 +161,14 @@ export function fileType(fileName: string, url = ''): FileType {
 /** 协议标识（列表行的 proto 徽标）。 */
 export function protoLabel(url: string): string {
   if (url.startsWith('magnet:') || url.endsWith('.torrent')) return 'BT'
-  if (url.startsWith('ftp://') || url.startsWith('ftps://')) return 'FTP'
+  if (url.startsWith('ftp://')) return 'FTP'
+  if (url.startsWith('ftps://') || url.startsWith('ftpes://')) return 'FTPS'
   if (url.startsWith('ed2k://')) return 'eD2K'
   if (/\.m3u8(\?|$)/.test(url)) return 'HLS'
   if (/\.mpd(\?|$)/.test(url)) return 'DASH'
+  if (url.startsWith('mms://') || url.startsWith('mmst://')) return 'MMS'
+  if (url.startsWith('rtsp://') || url.startsWith('rtsps://')) return 'RTSP'
+  if (url.startsWith('rtmp://') || url.startsWith('rtmps://')) return 'RTMP'
   if (url.startsWith('https://')) return 'HTTPS'
   if (url.startsWith('http://')) return 'HTTP'
   return 'URL'

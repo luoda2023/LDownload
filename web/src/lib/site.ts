@@ -13,11 +13,15 @@ const TWO_LEVEL_PUBLIC_SUFFIXES = new Set([
 ])
 
 /** 从 URL 识别的粗粒度协议 token（对齐桌面 protocolLabel 分类）。 */
-function protocolToken(url: string): 'BT' | 'FTP' | 'ED2K' | 'HTTP' {
+function protocolToken(url: string): 'BT' | 'FTP' | 'FTPS' | 'ED2K' | 'MMS' | 'RTSP' | 'RTMP' | 'HTTP' {
   const lower = url.toLowerCase()
   if (lower.startsWith('magnet:') || lower.startsWith('torrent-file://')) return 'BT'
   if (lower.startsWith('ftp://')) return 'FTP'
+  if (lower.startsWith('ftps://') || lower.startsWith('ftpes://')) return 'FTPS'
   if (lower.startsWith('ed2k://')) return 'ED2K'
+  if (lower.startsWith('mms://') || lower.startsWith('mmst://')) return 'MMS'
+  if (lower.startsWith('rtsp://') || lower.startsWith('rtsps://')) return 'RTSP'
+  if (lower.startsWith('rtmp://') || lower.startsWith('rtmps://')) return 'RTMP'
   return 'HTTP'
 }
 

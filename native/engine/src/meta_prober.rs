@@ -67,8 +67,12 @@ pub async fn probe_task_meta(
         };
     }
 
-    // ftp:// — 使用现有 FTP 解析逻辑（FTP 无 HTTP 鉴权头语义，忽略 spec）
-    if lower_prefix.starts_with("ftp://") {
+    // ftp:// — 使用现有 FTP 解析逻辑（FTP 无 HTTP 鉴权头语义，忽略 spec）。
+    // ftps:// / ftpes:// 同走 FTP 探测（FTPS 连接内层做 TLS，SIZE 语义一致）。
+    if lower_prefix.starts_with("ftp://")
+        || lower_prefix.starts_with("ftps://")
+        || lower_prefix.starts_with("ftpes://")
+    {
         return probe_ftp_meta(url, file_name, proxy_config).await;
     }
 

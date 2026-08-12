@@ -41,15 +41,30 @@ pub struct FtpUrl {
     pub username: String,
     pub password: String,
     pub path: String,
+    /// FTPS（TLS）连接模式：`None` = 明文 FTP；`Some(true)` = 隐式 TLS
+    /// （`ftps://`，连接即握手，默认端口 990）；`Some(false)` = 显式 TLS
+    /// （`ftpes://`，先连再 AUTH TLS 升级，默认端口 21）。
+    pub secure: Option<bool>,
 }
+
+/// FTPS 隐式 TLS 的默认端口（RFC 4217 约定 990）。
+const FTPS_IMPLICIT_DEFAULT_PORT: u16 = 990;
+/// FTPS 显式 TLS / 明文 FTP 的默认端口。
+const FTP_DEFAULT_PORT: u16 = 21;
 
 pub fn parse_ftp_url(url: &str) -> Result<FtpUrl, DownloadError> {
     let lower = url.to_ascii_lowercase();
-    let stripped = if lower.starts_with("ftp://") {
-        &url[6..]
+    // 兼容三种 scheme：ftp://（明文）、ftps://（隐式 TLS）、ftpes://（显式 TLS）。
+    let (secure, scheme_len) = if lower.starts_with("ftps://") {
+        (Some(true), 7)
+    } else if lower.starts_with("ftpes://") {
+        (Some(false), 8)
+    } else if lower.starts_with("ftp://") {
+        (None, 6)
     } else {
         return Err(DownloadError::Other("not an FTP URL".to_string()));
     };
+    let stripped = &url[scheme_len..];
 
     // Use rfind to handle passwords containing literal '@' characters.
     // E.g. ftp://user:p@ss@host/file → userinfo="user:p@ss", hostpath="host/file"
@@ -76,14 +91,19 @@ pub fn parse_ftp_url(url: &str) -> Result<FtpUrl, DownloadError> {
         (hostpath, "/")
     };
 
+    let default_port = if secure == Some(true) {
+        FTPS_IMPLICIT_DEFAULT_PORT
+    } else {
+        FTP_DEFAULT_PORT
+    };
     let (host, port) = if let Some(colon) = hostport.rfind(':') {
         let port_str = &hostport[colon + 1..];
         match port_str.parse::<u16>() {
             Ok(p) => (hostport[..colon].to_string(), p),
-            Err(_) => (hostport.to_string(), 21),
+            Err(_) => (hostport.to_string(), default_port),
         }
     } else {
-        (hostport.to_string(), 21)
+        (hostport.to_string(), default_port)
     };
 
     if host.is_empty() {
@@ -96,6 +116,7 @@ pub fn parse_ftp_url(url: &str) -> Result<FtpUrl, DownloadError> {
         username,
         password,
         path: url_decode(path),
+        secure,
     })
 }
 
@@ -141,6 +162,7 @@ fn url_decode(s: &str) -> String {
 // ---------------------------------------------------------------------------
 
 use suppaftp::FtpStream;
+use suppaftp::RustlsFtpStream;
 use suppaftp::types::FileType;
 
 /// Timeout for FTP data-connection reads.  Prevents blocking threads from
@@ -251,6 +273,78 @@ fn ftp_connect_sync_with_proxy(
     Ok(stream)
 }
 
+/// rustls 信任根：webpki-roots（Mozilla 根证书集）。
+fn rustls_root_config() -> rustls::ClientConfig {
+    let mut roots = rustls::RootCertStore::empty();
+    roots.extend(webpki_roots::TLS_SERVER_ROOTS.iter().map(|a| a.to_owned()));
+    rustls::ClientConfig::builder()
+        .with_root_certificates(roots)
+        .with_no_client_auth()
+}
+
+/// FTPS 连接：`secure == Some(true)` 走隐式 TLS（`ftps://`，连接即握手，
+/// 默认端口 990）；`Some(false)` 走显式 TLS（`ftpes://`，先连再 AUTH TLS）。
+///
+/// 与明文路径的区别只在传输层：suppaftp 的 `RustlsFtpStream` 在 secure
+/// 模式下数据连接自动走 TLS（`DataStream::Ssl`），故调用方（SIZE/RETR/
+/// REST）零改动。
+///
+/// 注：`connect_secure_implicit` 在 suppaftp 中被标记 `#[deprecated]`（官方
+/// 推荐显式 AUTH TLS，隐式是历史遗留），此处仅因它是唯一可用的隐式入口
+/// 而调用——功能正确，且已用 `#[allow(deprecated)]` 显式抑制。
+fn ftps_connect_sync(
+    ftp_url: &FtpUrl,
+    proxy: Option<&ProxyConfig>,
+) -> Result<RustlsFtpStream, DownloadError> {
+    use suppaftp::RustlsConnector;
+    // v1：FTPS 暂不走代理隧道（TLS over CONNECT/SOCKS 链路需额外验证），
+    // 有代理配置时仅记录仍直连；后续需要再补。
+    if proxy.is_some_and(|p| p.is_active()) {
+        log_info!(
+            "[ftps-connect] proxy configured but FTPS v1 connects directly ({}:{})",
+            ftp_url.host,
+            ftp_url.port
+        );
+    }
+    let timeout = Duration::from_secs(30);
+    let connector = RustlsConnector::from(std::sync::Arc::new(rustls_root_config()));
+
+    let addr = format!("{}:{}", ftp_url.host, ftp_url.port);
+    let sock_addr: std::net::SocketAddr = addr.parse().or_else(|_| {
+        use std::net::ToSocketAddrs;
+        addr.to_socket_addrs()
+            .map_err(|e| DownloadError::Other(format!("DNS resolve error: {}", e)))?
+            .next()
+            .ok_or_else(|| DownloadError::Other("DNS returned no addresses".to_string()))
+    })?;
+
+    let domain = ftp_url.host.clone();
+    let mut stream = match ftp_url.secure {
+        Some(true) => {
+            // 隐式 FTPS：TCP 连接后立即 TLS 握手（端口 990 默认）。
+            #[allow(deprecated)]
+            RustlsFtpStream::connect_secure_implicit(sock_addr, connector, &domain)
+                .map_err(|e| DownloadError::Other(format!("FTPS implicit connect error: {e}")))?
+        }
+        _ => {
+            // 显式 FTPS（ftpes:// 或端口 21 的 ftps://）：先建明文控制连接，
+            // 再发 AUTH TLS 升级（suppaftp 的 into_secure 处理握手与数据面）。
+            let ftp = RustlsFtpStream::connect_timeout(sock_addr, timeout)
+                .map_err(|e| DownloadError::Other(format!("FTPS connect error: {e}")))?;
+            ftp.into_secure(connector, &domain)
+                .map_err(|e| DownloadError::Other(format!("FTPS AUTH TLS error: {e}")))?
+        }
+    };
+
+    stream
+        .login(&ftp_url.username, &ftp_url.password)
+        .map_err(|e| DownloadError::Other(format!("FTPS login error: {e}")))?;
+    stream
+        .transfer_type(FileType::Binary)
+        .map_err(|e| DownloadError::Other(format!("FTPS set binary mode error: {e}")))?;
+    Ok(stream)
+}
+
 // ---------------------------------------------------------------------------
 // Resolve FTP file info
 // ---------------------------------------------------------------------------
@@ -268,9 +362,15 @@ pub async fn resolve_ftp_file_info(
     for attempt in 0..PROBE_MAX_RETRIES {
         let fu = ftp_url.clone();
         let px = proxy.clone();
-        let result = tokio::task::spawn_blocking(move || resolve_ftp_info_sync(&fu, &px))
-            .await
-            .map_err(|e| DownloadError::Other(format!("spawn_blocking join error: {}", e)))?;
+        let result = tokio::task::spawn_blocking(move || {
+            if fu.secure.is_some() {
+                resolve_ftps_info_sync(&fu, &px)
+            } else {
+                resolve_ftp_info_sync(&fu, &px)
+            }
+        })
+        .await
+        .map_err(|e| DownloadError::Other(format!("spawn_blocking join error: {}", e)))?;
 
         match result {
             Ok(info) => return Ok(info),
@@ -333,6 +433,53 @@ fn resolve_ftp_info_sync(ftp_url: &FtpUrl, proxy: &ProxyConfig) -> Result<FileIn
         etag: String::new(),
         last_modified: String::new(),
         // FTP has no Content-Encoding concept.
+        content_encoding_compressed: false,
+    })
+}
+
+/// FTPS（TLS）文件信息探测：逻辑与明文版一致，仅连接层换 `ftps_connect_sync`。
+fn resolve_ftps_info_sync(
+    ftp_url: &FtpUrl,
+    proxy: &ProxyConfig,
+) -> Result<FileInfo, DownloadError> {
+    let proxy_opt = if proxy.is_active() { Some(proxy) } else { None };
+    let mut ftp = ftps_connect_sync(ftp_url, proxy_opt)?;
+
+    let total_bytes = match ftp.size(&ftp_url.path) {
+        Ok(size) => size as i64,
+        Err(e) => {
+            log_info!("[ftps-resolve] SIZE failed: {}, assuming unknown", e);
+            0
+        }
+    };
+
+    let file_name = ftp_url
+        .path
+        .rsplit('/')
+        .next()
+        .filter(|s| !s.is_empty())
+        .map(sanitize_filename)
+        .or_else(|| extract_from_url(&format!("ftps://{}{}", ftp_url.host, ftp_url.path)))
+        .unwrap_or_else(|| "download".to_string());
+
+    let supports_range = total_bytes > 0;
+    let _ = ftp.quit();
+
+    log_info!(
+        "[ftps-resolve] path={}, name={}, size={}, range={}",
+        ftp_url.path,
+        file_name,
+        total_bytes,
+        supports_range
+    );
+
+    Ok(FileInfo {
+        file_name,
+        total_bytes,
+        supports_range,
+        content_type: String::new(),
+        etag: String::new(),
+        last_modified: String::new(),
         content_encoding_compressed: false,
     })
 }
@@ -806,6 +953,18 @@ async fn run_ftp_download_inner(p: &DownloadParams) -> Result<i64, DownloadError
 
     let ftp_url = parse_ftp_url(&p.url)?;
 
+    // FTPS（TLS）：强制单流。理由：① TLS 数据连接每段都要重新握手，多段
+    // 连接建立的 CPU/延迟开销吃掉并发收益；② TLS 会话复用（suppaftp 控制
+    // 面）不适用于数据面，多段会 N 次完整握手。REST 续传（单流内 resume）
+    // 仍可用。
+    if ftp_url.secure.is_some() {
+        log_info!(
+            "[ftp-download] task {} FTPS (TLS), forcing single-stream",
+            p.task_id
+        );
+        use_segments = false;
+    }
+
     if use_segments {
         ftp_download_multi_segment(
             &p.task_id,
@@ -827,20 +986,36 @@ async fn run_ftp_download_inner(p: &DownloadParams) -> Result<i64, DownloadError
         // so retrying after a transient failure is safe.
         let mut attempts = 0u32;
         loop {
-            match ftp_download_single(
-                &p.task_id,
-                &ftp_url,
-                &temp_path,
-                info.total_bytes,
-                info.supports_range,
-                &p.db,
-                &p.progress_tx,
-                &p.cancel_token,
-                &p.speed_limiter,
-                &p.proxy_config,
-            )
-            .await
-            {
+            let single = if ftp_url.secure.is_some() {
+                ftps_download_single(
+                    &p.task_id,
+                    &ftp_url,
+                    &temp_path,
+                    info.total_bytes,
+                    info.supports_range,
+                    &p.db,
+                    &p.progress_tx,
+                    &p.cancel_token,
+                    &p.speed_limiter,
+                    &p.proxy_config,
+                )
+                .await
+            } else {
+                ftp_download_single(
+                    &p.task_id,
+                    &ftp_url,
+                    &temp_path,
+                    info.total_bytes,
+                    info.supports_range,
+                    &p.db,
+                    &p.progress_tx,
+                    &p.cancel_token,
+                    &p.speed_limiter,
+                    &p.proxy_config,
+                )
+                .await
+            };
+            match single {
                 Ok(()) => break,
                 Err(DownloadError::Cancelled) => return Err(DownloadError::Cancelled),
                 Err(e) => {
@@ -1116,6 +1291,277 @@ async fn ftp_download_single(
                     .set_read_timeout(Some(FTP_CONTROL_READ_TIMEOUT))
                 {
                     log_info!("[ftp] 控制连接 set_read_timeout 失败: {}", e);
+                }
+                let _ = ftp.finalize_retr_stream(data_stream);
+            }
+            let _ = ftp.quit();
+            Ok(())
+        })
+    };
+
+    // Async writer: receives chunks and writes to file with speed limiting
+    let mut downloaded: i64 = if resume { existing_len } else { 0 };
+    let mut file = if resume {
+        let f = OpenOptions::new().write(true).open(&dest).await?;
+        let mut f = tokio::io::BufWriter::with_capacity(BUF_WRITER_CAPACITY, f);
+        f.seek(std::io::SeekFrom::End(0)).await?;
+        f
+    } else {
+        tokio::io::BufWriter::with_capacity(BUF_WRITER_CAPACITY, File::create(&dest).await?)
+    };
+
+    let mut last_report = std::time::Instant::now();
+    let mut last_db_save = std::time::Instant::now();
+
+    loop {
+        tokio::select! {
+            _ = cancel_token.cancelled() => {
+                cancelled_writer.store(true, Ordering::SeqCst);
+                // flush 用 best-effort: 即便失败也要继续落库进度并清理 reader,否则 ?
+                // 会以 Io 错误绕过这些清理,且重试包装器会因非 Cancelled 而错误重试。
+                let _ = file.flush().await;
+                let _ = db.update_task_progress(&task_id, downloaded).await;
+                cancel_watcher.abort();
+                // close() 唤醒可能因 channel 满而阻塞在 blocking_send 的 reader,
+                // 避免下面 ftp_reader.await 死锁(与写错误分支一致)。
+                chunk_rx.close();
+                // Wait for blocking thread to finish
+                let _ = ftp_reader.await;
+                return Err(DownloadError::Cancelled);
+            }
+            chunk = chunk_rx.recv() => {
+                match chunk {
+                    Some(bytes) => {
+                        let n = bytes.len();
+                        // Speed limiter
+                        let mut offset = 0usize;
+                        let mut write_err: Option<std::io::Error> = None;
+                        while offset < n {
+                            let remaining = (n - offset) as u64;
+                            let allowed = speed_limiter.consume(remaining).await;
+                            let end = offset + allowed as usize;
+                            if let Err(e) = file.write_all(&bytes[offset..end]).await {
+                                write_err = Some(e);
+                                break;
+                            }
+                            offset = end;
+                        }
+
+                        // BUG-FTP-SINGLE-WRITEERR-LEAK 修复：镜像多段写错误处理，
+                        // 捕获写错误后先持久化进度，再设取消标志、关闭 channel、
+                        // 等待 reader 结束，最后返回错误，防止 cancel_watcher 泄漏
+                        // 且避免 ftp_reader 阻塞 blocking 线程的 chunk_tx 死锁。
+                        if let Some(e) = write_err {
+                            let _ = db.update_task_progress(&task_id, downloaded).await;
+                            cancelled_writer.store(true, Ordering::SeqCst);
+                            cancel_watcher.abort();
+                            chunk_rx.close();
+                            let _ = ftp_reader.await;
+                            return Err(DownloadError::Io(e));
+                        }
+
+                        downloaded += n as i64;
+
+                        if last_report.elapsed().as_millis() >= 200 {
+                            let _ = progress_tx
+                                .send(ProgressUpdate {
+                                    task_id: task_id.clone(),
+                                    downloaded_bytes: downloaded,
+                                    total_bytes,
+                                    status: 1,
+                                    error_message: String::new(),
+                                    file_name: String::new(),
+                                    segment_details: Some(vec![SegmentProgressInfo {
+                                        index: 0,
+                                        start_byte: 0,
+                                        end_byte: if total_bytes > 0 { total_bytes - 1 } else { 0 },
+                                        downloaded_bytes: downloaded,
+                                    }]),
+                                    ..Default::default()
+                                })
+                                .await;
+                            last_report = std::time::Instant::now();
+                        }
+
+                        if last_db_save.elapsed().as_secs() >= DB_SAVE_INTERVAL_SECS {
+                            // 与多段路径（ftp_do_segment）保持一致：落库前先 flush+sync，
+                            // 使 DB 偏移不超过已持久化字节。单流续传虽以磁盘文件大小为准
+                            // （非 DB 值），此处主要为不变式一致性；sync 失败则跳过本次落库。
+                            let durable =
+                                file.flush().await.is_ok() && file.get_ref().sync_data().await.is_ok();
+                            if durable {
+                                let _ = db.update_task_progress(&task_id, downloaded).await;
+                            }
+                            last_db_save = std::time::Instant::now();
+                        }
+                    }
+                    None => break, // channel closed — FTP reader done
+                }
+            }
+        }
+    }
+
+    file.flush().await?;
+    // 与周期保存 / ftp_do_segment 保持一致：最终落库前 fdatasync，确保完成时
+    // 磁盘数据持久（best-effort，失败不掩盖后续 reader 结果判定）。
+    let _ = file.get_ref().sync_data().await;
+    let _ = db.update_task_progress(&task_id, downloaded).await;
+    cancel_watcher.abort();
+
+    // Check reader result
+    let reader_result = ftp_reader
+        .await
+        .map_err(|e| DownloadError::Other(format!("FTP reader join error: {}", e)))?;
+    reader_result?;
+
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+async fn ftps_download_single(
+    task_id: &str,
+    ftp_url: &FtpUrl,
+    dest: &Path,
+    total_bytes: i64,
+    supports_range: bool,
+    db: &Db,
+    progress_tx: &mpsc::Sender<ProgressUpdate>,
+    cancel_token: &CancellationToken,
+    speed_limiter: &SpeedLimiter,
+    proxy_config: &ProxyConfig,
+) -> Result<(), DownloadError> {
+    if let Some(parent) = dest.parent() {
+        tokio::fs::create_dir_all(parent).await?;
+    }
+
+    let existing_len = match tokio::fs::metadata(dest).await {
+        Ok(m) => m.len() as i64,
+        Err(_) => 0,
+    };
+
+    let resume =
+        supports_range && existing_len > 0 && (total_bytes == 0 || existing_len < total_bytes);
+
+    // Reset DB progress if starting fresh
+    if !resume {
+        // 单流新起时一并清除可能残留的多段记录(上次多段失败/降级遗留),保证
+        // "不使用分段则 DB 无段行"不变式,防止后续续传被 load_segments 误判为多段。
+        let _ = db.delete_segments(task_id).await;
+        let _ = db.update_task_progress(task_id, 0).await;
+    }
+
+    let ftp_url = ftp_url.clone();
+    let dest = dest.to_path_buf();
+    let task_id = task_id.to_string();
+    let db = db.clone();
+    let progress_tx = progress_tx.clone();
+    let cancel_token = cancel_token.clone();
+    let speed_limiter = speed_limiter.clone();
+
+    // The blocking thread reads FTP data and sends chunks via channel
+    // to the async side which handles file I/O and progress reporting.
+    let (chunk_tx, mut chunk_rx) = mpsc::channel::<Vec<u8>>(32);
+    let cancelled = Arc::new(AtomicBool::new(false));
+    let cancelled_writer = cancelled.clone();
+
+    // Cancel watcher
+    let cancel_watcher = {
+        let token = cancel_token.clone();
+        let flag = cancelled.clone();
+        tokio::spawn(async move {
+            token.cancelled().await;
+            flag.store(true, Ordering::SeqCst);
+        })
+    };
+
+    // Blocking FTP reader thread
+    let ftp_reader = {
+        let ftp_url = ftp_url.clone();
+        let cancelled = cancelled.clone();
+        let resume_offset = if resume { existing_len } else { 0 };
+        let proxy = proxy_config.clone();
+
+        tokio::task::spawn_blocking(move || -> Result<(), DownloadError> {
+            let proxy_opt = if proxy.is_active() {
+                Some(&proxy)
+            } else {
+                None
+            };
+            let mut ftp = ftps_connect_sync(&ftp_url, proxy_opt)?;
+
+            if resume_offset > 0 {
+                ftp.resume_transfer(resume_offset as usize)
+                    .map_err(|e| DownloadError::Other(format!("FTP REST error: {}", e)))?;
+            }
+
+            let mut data_stream = ftp
+                .retr_as_stream(&ftp_url.path)
+                .map_err(|e| DownloadError::Other(format!("FTP RETR error: {}", e)))?;
+
+            // Set read timeout so cancellation eventually unblocks this thread.
+            if let Err(e) = data_stream
+                .get_ref()
+                .set_read_timeout(Some(FTP_DATA_READ_TIMEOUT))
+            {
+                log_info!("[ftps-single] set_read_timeout failed: {}", e);
+            }
+
+            let mut buf = vec![0u8; 64 * 1024];
+            let mut consecutive_timeouts: u32 = 0;
+
+            loop {
+                if cancelled.load(Ordering::SeqCst) {
+                    break;
+                }
+                match data_stream.read(&mut buf) {
+                    Ok(0) => break,
+                    Ok(n) => {
+                        consecutive_timeouts = 0;
+                        if chunk_tx.blocking_send(buf[..n].to_vec()).is_err() {
+                            break; // receiver dropped
+                        }
+                    }
+                    Err(e)
+                        if e.kind() == std::io::ErrorKind::TimedOut
+                            || e.kind() == std::io::ErrorKind::WouldBlock =>
+                    {
+                        consecutive_timeouts += 1;
+                        if cancelled.load(Ordering::SeqCst)
+                            || consecutive_timeouts >= MAX_CONSECUTIVE_TIMEOUTS
+                        {
+                            if consecutive_timeouts >= MAX_CONSECUTIVE_TIMEOUTS {
+                                drop(data_stream);
+                                let _ = ftp.quit();
+                                return Err(DownloadError::Other(format!(
+                                    "FTP read timed out {} consecutive times",
+                                    consecutive_timeouts
+                                )));
+                            }
+                            break;
+                        }
+                        continue;
+                    }
+                    Err(e) => {
+                        drop(data_stream);
+                        let _ = ftp.quit();
+                        return Err(DownloadError::Io(e));
+                    }
+                }
+            }
+
+            // On cancel, skip finalize_retr_stream (it blocks waiting for 226).
+            if cancelled.load(Ordering::SeqCst) {
+                drop(data_stream);
+            } else {
+                // BUG-FTP-CONTROL-IDLE-421 修复：读取 226 前给控制连接设超时，
+                // 防止服务器 421 断开后 finalize_retr_stream 无限阻塞。
+                // 设超时失败时记日志（与数据连接 set_read_timeout 一致），否则
+                // 控制连接无超时仍可能挂起，且静默无诊断线索。
+                if let Err(e) = ftp
+                    .get_ref()
+                    .set_read_timeout(Some(FTP_CONTROL_READ_TIMEOUT))
+                {
+                    log_info!("[ftps] 控制连接 set_read_timeout 失败: {}", e);
                 }
                 let _ = ftp.finalize_retr_stream(data_stream);
             }
@@ -2009,6 +2455,49 @@ mod tests {
     fn parse_ftp_url_not_ftp_scheme() {
         let u = parse_ftp_url("http://example.com/file");
         assert!(u.is_err());
+    }
+
+    #[test]
+    fn parse_ftps_url_implicit() {
+        // ftps:// = 隐式 TLS，默认端口 990
+        let u = parse_ftp_url("ftps://host.com/secret/file.bin");
+        assert!(u.is_ok());
+        let u = u.unwrap_or_else(|_| unreachable!());
+        assert_eq!(u.host, "host.com");
+        assert_eq!(u.port, 990);
+        assert_eq!(u.secure, Some(true));
+        assert_eq!(u.path, "/secret/file.bin");
+    }
+
+    #[test]
+    fn parse_ftpes_url_explicit() {
+        // ftpes:// = 显式 TLS，默认端口 21
+        let u = parse_ftp_url("ftpes://user:pw@host.com/dir/f.txt");
+        assert!(u.is_ok());
+        let u = u.unwrap_or_else(|_| unreachable!());
+        assert_eq!(u.host, "host.com");
+        assert_eq!(u.port, 21);
+        assert_eq!(u.secure, Some(false));
+        assert_eq!(u.username, "user");
+        assert_eq!(u.path, "/dir/f.txt");
+    }
+
+    #[test]
+    fn parse_ftps_url_explicit_port() {
+        // 显式端口覆盖默认
+        let u = parse_ftp_url("ftps://host.com:2121/a.bin");
+        assert!(u.is_ok());
+        let u = u.unwrap_or_else(|_| unreachable!());
+        assert_eq!(u.port, 2121);
+        assert_eq!(u.secure, Some(true));
+    }
+
+    #[test]
+    fn ftps_url_case_insensitive() {
+        let u = parse_ftp_url("FTPS://HOST.COM/a.bin");
+        assert!(u.is_ok());
+        let u = u.unwrap_or_else(|_| unreachable!());
+        assert_eq!(u.secure, Some(true));
     }
 
     #[test]

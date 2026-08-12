@@ -35,16 +35,17 @@
 
 ## 下载引擎（`native/engine`）
 
-### 6 种协议（分发 = `download_manager::do_start_task`/`do_resume_task` 内单条 if/else 链，每臂 `catch_unwind`）
+### 8 种协议（分发 = `download_manager::do_start_task`/`do_resume_task` 内单条 if/else 链，每臂 `catch_unwind`）
 
 | 协议 | 判定谓词 | 入口 | 文件 |
 |---|---|---|---|
 | **HTTP/HTTPS**（默认兜底） | fallthrough | `segment_coordinator`（IDM worker pool） | `downloader.rs` / `segment_coordinator.rs` / `segment_advisor.rs` |
-| **FTP** | `is_ftp_url` | `ftp_downloader::run_ftp_download` | `ftp_downloader.rs`（suppaftp 同步 + spawn_blocking） |
+| **FTP / FTPS** | `is_ftp_url`（`ftp://`/`ftps://`/`ftpes://`） | `ftp_downloader::run_ftp_download` | `ftp_downloader.rs`（suppaftp 同步 + spawn_blocking；FTPS 走 `ftps_connect_sync` rustls 连接器，`ftps://`=隐式 990、`ftpes://`=显式 21，强制单流） |
 | **BitTorrent** | `is_bt_url`（magnet 或 .torrent 哨兵） | librqbit `SharedBtSession` | `bt_downloader.rs` / `tracker_subscription.rs` |
 | **HLS** | `hls_downloader::is_hls_url` | `run_hls_download` | `hls_downloader.rs`（M3U8/多码率/AES-128） |
 | **DASH / 音视频轨合并** | `is_dash_url` 或有 `audio_url` | `run_dash_download` | `dash_downloader.rs` |
 | **ED2K（仅下载）** | `ed2k::link::is_ed2k_url` | `ed2k::run_ed2k_download` | `ed2k/`（mod,link,proto,hash,server,peer,client,server_subscription,upnp,kad/） |
+| **MMS / RTSP / RTMP 流** | `stream_downloader::is_stream_url`（`mms://`/`mmst://`/`mmsu://`/`rtsp://`/`rtsps://`/`rtmp://`/`rtmps://`） | `stream_downloader::run_stream_download` | `stream_downloader.rs`（受管 ffmpeg `-progress pipe:1` 录制，`-rtsp_transport tcp`，kill_on_drop 取消；无断点续传，resume=重录覆盖） |
 
 - BT 任务绕过 pending 队列，且**不计入** http/ftp 并发计数（`max_concurrent`）。
 - **BT 判定只认 `magnet:` 与 `torrent-file://` 哨兵**（`is_bt_url`）。HTTP 的

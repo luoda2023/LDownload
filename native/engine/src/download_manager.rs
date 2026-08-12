@@ -153,9 +153,14 @@ fn is_retriable_error(msg: &str) -> bool {
 }
 
 /// Determine if a URL uses the FTP protocol (case-insensitive).
+/// 覆盖明文 `ftp://` 与 FTPS 的 `ftps://`（隐式 TLS）/ `ftpes://`（显式 TLS）。
 fn is_ftp_url(url: &str) -> bool {
-    url.get(..6)
-        .map(|prefix| prefix.eq_ignore_ascii_case("ftp://"))
+    url.get(..8)
+        .map(|prefix| {
+            prefix.eq_ignore_ascii_case("ftp://")
+                || prefix.eq_ignore_ascii_case("ftps://")
+                || prefix.eq_ignore_ascii_case("ftpes://")
+        })
         .unwrap_or(false)
 }
 
