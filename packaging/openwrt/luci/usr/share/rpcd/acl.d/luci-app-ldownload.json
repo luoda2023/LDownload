@@ -1,0 +1,14 @@
+{
+	"luci-app-ldownload": {
+		"description": "Grant access to LDownload configuration",
+		"read": {
+			"uci": [ "ldownload" ],
+			"ubus": {
+				"service": [ "list" ]
+			}
+		},
+		"write": {
+			"uci": [ "ldownload" ]
+		}
+	}
+}

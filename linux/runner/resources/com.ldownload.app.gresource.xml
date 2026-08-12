@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+  <gresource prefix="/com/ldownload/app">
+    <file alias="icons/hicolor/256x256/apps/com.ldownload.app.png">assets/logo/ldownload_logo.png</file>
+    <file alias="icons/hicolor/scalable/apps/com.ldownload.app.svg">assets/logo/ldownload_logo.svg</file>
+  </gresource>
+</gresources>

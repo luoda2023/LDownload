@@ -1,0 +1,12 @@
+[Desktop Entry]
+Name=LDownload
+GenericName=Download Manager
+Comment=Free IDM-alternative download manager
+Exec=ldownload %U
+Icon=com.ldownload.app
+Type=Application
+Categories=Network;FileTransfer;
+MimeType=application/x-bittorrent;x-scheme-handler/magnet;x-scheme-handler/ldownload;x-scheme-handler/ed2k;
+Keywords=download;manager;idm;torrent;magnet;ed2k;
+StartupWMClass=ldownload
+StartupNotify=true

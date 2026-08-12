@@ -1,0 +1,14 @@
+{
+	"admin/services/ldownload": {
+		"title": "LDownload",
+		"order": 60,
+		"action": {
+			"type": "view",
+			"path": "ldownload"
+		},
+		"depends": {
+			"acl": [ "luci-app-ldownload" ],
+			"uci": { "ldownload": true }
+		}
+	}
+}

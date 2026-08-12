@@ -1,0 +1,10 @@
+{
+  "extensionName": {
+    "message": "LDownload",
+    "description": "The name of the extension"
+  },
+  "extensionDescription": {
+    "message": "Intercept browser downloads and send to LDownload app for high-speed downloading",
+    "description": "The description of the extension"
+  }
+}

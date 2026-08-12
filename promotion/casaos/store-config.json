@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "store_id": "ldownload",
+  "name": {
+    "en_US": "LDownload Store",
+    "zh_CN": "LDownload 应用商店"
+  },
+  "description": {
+    "en_US": "Official LDownload download manager for CasaOS / ZimaOS",
+    "zh_CN": "LDownload 下载管理器官方 CasaOS / ZimaOS 源"
+  },
+  "maintainer": "luoda2023",
+  "url": "https://github.com/luoda2023/LDownload"
+}
