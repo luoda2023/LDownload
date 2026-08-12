@@ -830,9 +830,9 @@ class _NavItem extends StatefulWidget {
   final int? count;
   final bool isSelected;
   final bool showActivityDot;
-  // ignore: unused_element_parameter
   // 设备在线态圆点（null=不显示；true=实心绿/在线；false=空心灰/离线）。
   // 当前侧栏无设备区块实例化此参数（设备区块曾移除），保留实现供将来复用。
+  // ignore: unused_element_parameter
   final bool? isOnline;
   final VoidCallback onTap;
 
@@ -842,6 +842,9 @@ class _NavItem extends StatefulWidget {
     this.count,
     required this.isSelected,
     this.showActivityDot = false,
+    // 设备在线态圆点：当前侧栏无设备区块调用方（功能预留），
+    // 保留实现避免未来设备列表接入时重写；analyzer 提示无害。
+    // ignore: unused_element_parameter
     this.isOnline,
     required this.onTap,
   });

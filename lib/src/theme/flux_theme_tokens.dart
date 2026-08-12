@@ -239,8 +239,10 @@ class FluxThemeTokens {
       // Text
       textPrimary: const Color(0xFF09090B),
       textSecondary: const Color(0xFF71717A),
-      textMuted: const Color(0xFFA1A1AA),
-      textDisabled: const Color(0xFFA1A1AA).withValues(alpha: 0.5),
+      // 对比度修复：textMuted #A1A1AA 白底仅 2.56:1（10.5-12px 小字
+      // 不达标 AA 4.5:1）→ #75757F（4.55:1）。层级仍弱于 textSecondary。
+      textMuted: const Color(0xFF75757F),
+      textDisabled: const Color(0xFF75757F).withValues(alpha: 0.45),
       // Border
       border: const Color(0xFFE4E4E7),
       borderFocused: accent,
@@ -264,10 +266,12 @@ class FluxThemeTokens {
       switchThumb: const Color(0xFFFFFFFF),
       // Shadow
       shadow: const Color(0xFF000000),
-      // Status
-      statusSuccess: const Color(0xFF22C55E),
-      statusWarning: const Color(0xFFF59E0B),
-      statusError: const Color(0xFFEF4444),
+      // Status——图标/色块对比度 ≥3:1（WCAG 1.4.11）：
+      // success #22C55E 2.28:1 → #16A34A 3.30:1；warning #F59E0B 2.15:1 →
+      // #D97706 3.19:1；error #EF4444 3.76:1 → #DC2626 4.83:1。
+      statusSuccess: const Color(0xFF16A34A),
+      statusWarning: const Color(0xFFD97706),
+      statusError: const Color(0xFFDC2626),
     );
   }
 

@@ -2,13 +2,12 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:archive/archive.dart';
 import 'package:archive/archive_io.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 
 import 'platform_utils.dart';
-import '../log_service.dart';
+import 'log_service.dart';
 
 /// 浏览器扩展内置安装服务。
 ///
@@ -24,8 +23,9 @@ class ExtensionInstallService {
   // Firefox 扩展 ID：ldownload@ldownload.app
   // 两 ID 均硬编码于 native/hub/src/nmh_registry.rs 的 allowed_origins /
   // allowed_extensions，勿改此处值（此处仅为文档性常量，不参与安装逻辑）。
-  // ignore: unused_field, unused_field
+  // ignore: unused_field
   static const String _chromeId = 'meleenglfggcmcajknpeeeiobnpfmahc';
+  // ignore: unused_field
   static const String _firefoxId = 'ldownload@ldownload.app';
 
   /// 安装 Chrome 扩展（侧载）。
@@ -48,30 +48,31 @@ class ExtensionInstallService {
   ///    about:debugging 临时加载未签名扩展；`file://*.xpi` 直开安装已被
   ///    Firefox 移除，旧实现不可用）。
   /// 2. 若 XPI 缺失（AMO 签名凭据失效导致 CI 未产出，v10.0.3/v10.0.4 实际
-  ///    如此）→ 同样解压目录 + about:debugging 引导。WebExtension 本体
-  ///    是 zip，可直接解压为目录加载。
+  ///    如此）→ 返回 [InstallResult.assetMissing] 并提示去 GitHub Release
+  ///    手动下载。**注意**：缺失时绝不能让用户去 about:debugging 加载空目录
+  ///    （旧实现假成功：目录是空的却返回 success）。
   static Future<InstallResult> installFirefox() async {
     if (!Platform.isWindows && !Platform.isMacOS && !Platform.isLinux) {
       return InstallResult.notSupported;
     }
 
-    // 读取内嵌 XPI（缺失时也继续——只要扩展本体在，临时加载不依赖签名）。
+    // 读取内嵌 XPI；缺失直接返回 assetMissing（空目录无法临时加载）。
     final bytes = await _loadAssetBytes(_firefoxAsset);
+    if (bytes == null) return InstallResult.assetMissing;
+
     final dataDir = resolveDataDir();
     final extRoot = Directory(p.join(dataDir, 'extensions', 'firefox-mv2'));
     await extRoot.create(recursive: true);
     await _clearDirectory(extRoot);
 
-    if (bytes != null) {
-      // XPI 本质是 zip：解压为目录供 about:debugging 临时加载。
-      try {
-        final archive = ZipDecoder().decodeBytes(bytes);
-        extractArchiveToDisk(archive, extRoot.path);
-      } catch (e) {
-        logInfo('extension_install', 'Firefox XPI 解压失败: $e');
-        // 解压失败视为资源损坏。
-        return InstallResult.assetMissing;
-      }
+    // XPI 本质是 zip：解压为目录供 about:debugging 临时加载。
+    try {
+      final archive = ZipDecoder().decodeBytes(bytes);
+      extractArchiveToDisk(archive, extRoot.path);
+    } catch (e) {
+      logInfo('extension_install', 'Firefox XPI 解压失败: $e');
+      // 解压失败视为资源损坏。
+      return InstallResult.assetMissing;
     }
 
     final firefoxExe = await _findBrowserExe('firefox');

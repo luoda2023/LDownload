@@ -610,6 +610,34 @@ jobs:
           AMO_SECRET: ${{ secrets.AMO_JWT_SECRET }}
           VERSION: ${{ steps.version.outputs.VERSION }}
 
+      # ── Firefox 未签名 XPI 兜底 ──
+      # AMO 凭据失效（Unauthorized）时签名步骤失败且不产出 XPI → 桌面安装包
+      # 内嵌缺失 → App 内 Firefox 安装按钮报「资源缺失」。
+      # about:debugging 临时加载**不需要**签名，因此这里用 web-ext build
+      # （纯打包、零凭据）兜底产出未签名 XPI，确保 Firefox 扩展始终进包。
+      - name: Build unsigned Firefox XPI fallback
+        if: always()
+        run: |
+          VERSION=${{ steps.version.outputs.VERSION }}
+          if [ -n "$(ls build/extension/LDownload-${VERSION}-firefox.xpi 2>/dev/null)" ]; then
+            echo "Signed XPI exists, fallback skipped"
+            exit 0
+          fi
+          echo "Signed XPI missing — building unsigned XPI via web-ext build (no AMO credentials needed)"
+          mkdir -p build/extension
+          web-ext build \
+            --source-dir ldownload/.output/firefox-mv2 \
+            --artifacts-dir build/extension \
+            --overwrite-dest
+          ZIP_FILE=$(ls build/extension/*.zip 2>/dev/null | head -1)
+          if [ -n "$ZIP_FILE" ]; then
+            mv "$ZIP_FILE" "build/extension/LDownload-${VERSION}-firefox.xpi"
+            echo "Unsigned Firefox XPI ready: LDownload-${VERSION}-firefox.xpi"
+          else
+            echo "::error::web-ext build produced no artifact"
+            exit 1
+          fi
+
       # ── Upload artifacts（供 release job 使用）──
       - name: Upload Chrome extension artifact
         uses: actions/upload-artifact@v4
