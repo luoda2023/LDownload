@@ -248,7 +248,7 @@ jobs:
           CARGO_NET_RETRY: "10"
         run: |
           for i in 1 2 3; do
-            cargo install rinf_cli@8.9.0 && exit 0
+            cargo install --force rinf_cli@8.9.0 && exit 0
             echo "cargo install failed (attempt $i), retrying in 15s..."
             sleep 15
           done
@@ -764,7 +764,7 @@ jobs:
           CARGO_NET_RETRY: "10"
         run: |
           for i in 1 2 3; do
-            cargo install rinf_cli@8.9.0 && exit 0
+            cargo install --force rinf_cli@8.9.0 && exit 0
             echo "cargo install failed (attempt $i), retrying in 15s..."
             sleep 15
           done
@@ -1093,7 +1093,7 @@ jobs:
           CARGO_NET_RETRY: "10"
         run: |
           for i in 1 2 3; do
-            cargo install rinf_cli@8.9.0 && exit 0
+            cargo install --force rinf_cli@8.9.0 && exit 0
             echo "cargo install failed (attempt $i), retrying in 15s..."
             sleep 15
           done
@@ -1248,7 +1248,7 @@ jobs:
           CARGO_NET_RETRY: "10"
         run: |
           for i in 1 2 3; do
-            cargo install rinf_cli@8.9.0 && exit 0
+            cargo install --force rinf_cli@8.9.0 && exit 0
             echo "cargo install failed (attempt $i), retrying in 15s..."
             sleep 15
           done
