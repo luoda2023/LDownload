@@ -2980,6 +2980,10 @@ pub fn build_add_torrent_options(
     output_folder: String,
     upload_limit_bps: u64,
 ) -> AddTorrentOptions {
+    // `mut` 仅在 Windows 分支（NTFS sparse staging）使用；Linux/macOS 上
+    // 编译时该分支被 cfg 剔除，rustc 1.97 起 `-D warnings` 会报 unused mut。
+    // cfg_attr 在非 Windows 下放行，语义即"仅 Windows 需要可变"。
+    #[cfg_attr(not(target_os = "windows"), allow(unused_mut))]
     let mut opts = AddTorrentOptions {
         overwrite: true,
         output_folder: Some(output_folder),
