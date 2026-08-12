@@ -84,7 +84,7 @@ const SAMPLE_VARS: Record<string, string> = {
   '{event.summary}': 'ubuntu-24.04.2-desktop-amd64.iso · 6.0 GB',
   '{timestamp}': '2026-07-17T12:34:56Z',
   '{instance.app}': 'ldownload',
-  '{instance.version}': '0.1.44',
+  '{instance.version}': '10.0.1',
   '{instance.host}': 'ldownload',
   '{task.id}': '00000000-0000-4000-8000-000000000000',
   '{task.fileName}': 'ubuntu-24.04.2-desktop-amd64.iso',
@@ -131,7 +131,7 @@ const ENVELOPE_SAMPLE = {
   event: 'task.completed',
   deliveryId: '5f2a91c7-8b3e-4d10-a6f4-c2d90b7e13aa',
   timestamp: '2026-07-17T12:34:56Z',
-  instance: { app: 'ldownload', version: '0.1.44', host: 'ldownload' },
+  instance: { app: 'ldownload', version: '10.0.1', host: 'ldownload' },
   queue: { id: 'main', name: 'Main' },
   task: {
     id: '00000000-0000-4000-8000-000000000000',

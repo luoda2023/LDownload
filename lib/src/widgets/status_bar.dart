@@ -10,7 +10,6 @@ import '../theme/app_colors.dart';
 import '../theme/app_metrics.dart';
 import '../services/shutdown_service.dart';
 import '../services/system_proxy_status.dart';
-import 'feedback_dialog.dart';
 
 // 预设限速值（label 显示用，kbs 为 KB/s）
 const _kPresets = [
@@ -423,30 +422,6 @@ class _StatusBarState extends State<StatusBar> {
                 onOpenProxySettings: widget.onOpenProxySettings,
                 s: s,
                 c: c,
-              ),
-              const SizedBox(width: 12),
-              Container(width: 1, height: 12, color: c.border),
-              const SizedBox(width: 12),
-              // 反馈按钮
-              GestureDetector(
-                onTap: () => showFeedbackDialog(context),
-                child: MouseRegion(
-                  cursor: SystemMouseCursors.click,
-                  child: Row(
-                    children: [
-                      Icon(
-                        LucideIcons.messageSquarePlus,
-                        size: 11,
-                        color: c.textMuted,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        s.feedback,
-                        style: TextStyle(fontSize: 10.5, color: c.textMuted),
-                      ),
-                    ],
-                  ),
-                ),
               ),
             ],
           ),

@@ -1384,39 +1384,6 @@ class S {
       _r('searchKeywordsCustomCategories').split(',');
 
   // ─────────────────────────────────────────────
-  // Feedback
-  // ─────────────────────────────────────────────
-  String get feedback => _r('feedback');
-  String get feedbackTitle => _r('feedbackTitle');
-  String get feedbackDesc => _r('feedbackDesc');
-  String get feedbackTypeLabel => _r('feedbackTypeLabel');
-  String get feedbackTypeFeature => _r('feedbackTypeFeature');
-  String get feedbackTypeBug => _r('feedbackTypeBug');
-  String get feedbackTypeOther => _r('feedbackTypeOther');
-  String get feedbackTitleLabel => _r('feedbackTitleLabel');
-  String get feedbackTitlePlaceholder => _r('feedbackTitlePlaceholder');
-  String get feedbackDescLabel => _r('feedbackDescLabel');
-  String get feedbackDescPlaceholder => _r('feedbackDescPlaceholder');
-  String get feedbackContactLabel => _r('feedbackContactLabel');
-  String get feedbackContactPlaceholder => _r('feedbackContactPlaceholder');
-  String get feedbackContactHint => _r('feedbackContactHint');
-  String get feedbackVersionLabel => _r('feedbackVersionLabel');
-  String get feedbackVersionAuto => _r('feedbackVersionAuto');
-  String get feedbackSysInfoLabel => _r('feedbackSysInfoLabel');
-  String get feedbackSysInfoSystem => _r('feedbackSysInfoSystem');
-  String get feedbackSysInfoHint => _r('feedbackSysInfoHint');
-  String get feedbackAttachLogs => _r('feedbackAttachLogs');
-  String get feedbackAttachLogsHint => _r('feedbackAttachLogsHint');
-  String get feedbackOptional => _r('feedbackOptional');
-  String get feedbackSubmit => _r('feedbackSubmit');
-  String get feedbackSubmitting => _r('feedbackSubmitting');
-  String get feedbackSuccess => _r('feedbackSuccess');
-  String get feedbackError => _r('feedbackError');
-  String get feedbackRateLimited => _r('feedbackRateLimited');
-  String feedbackTitleCount(int n) => _r('feedbackTitleCount', {'n': n});
-  String feedbackDescCount(int n) => _r('feedbackDescCount', {'n': n});
-
-  // ─────────────────────────────────────────────
   // HLS 画质选择
   // ─────────────────────────────────────────────
   String get hlsQualityTitle => _r('hlsQualityTitle');
@@ -1450,7 +1417,6 @@ class S {
   String get menuHelp => _r('menuHelp');
   String get menuSettings => _r('menuSettings');
   String get menuWebsite => _r('menuWebsite');
-  String get menuFeedback => _r('menuFeedback');
   String get menuAbout => _r('menuAbout');
   String get menuHide => _r('menuHide');
   String get menuHideOthers => _r('menuHideOthers');

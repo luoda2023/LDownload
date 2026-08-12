@@ -33,13 +33,10 @@ import 'src/services/notification_service.dart';
 import 'src/services/power_service.dart';
 import 'src/services/tray_service.dart';
 import 'src/i18n/locale_provider.dart';
-import 'src/services/update_service.dart';
 import 'src/theme/app_theme.dart';
 import 'src/theme/flux_theme_tokens.dart';
 import 'src/theme/theme_provider.dart';
-import 'src/widgets/feedback_dialog.dart';
 import 'src/widgets/ui_scale_widget.dart';
-import 'src/widgets/update_changelog_dialog.dart';
 
 /// 启动阶段的非关键步骤统一加超时保护和日志，
 /// 防止某一步卡住导致整个应用白屏。
@@ -432,17 +429,6 @@ class _LDownloadAppState extends State<LDownloadApp>
     // （原生层 first_frame_cb 默认会显示窗口，此处按用户设置补做隐藏）
     _applyStartMinimizedToTrayAfterConfigLoad();
 
-    // 延迟 5 秒后台静默检查更新（避免阻塞启动流程）
-    Future.delayed(const Duration(seconds: 5), () {
-      if (!mounted) return;
-      if (!_settingsForExternal.autoCheckUpdate) {
-        logInfo('LDownloadApp', 'auto check for updates skipped (disabled)');
-        return;
-      }
-      logInfo('LDownloadApp', 'auto check for updates');
-      UpdateService.instance.checkForUpdate();
-    });
-
     // Handle .torrent files and ldownload:// protocol URLs passed via
     // command-line args (Windows file association / protocol handler).
     // Wait for SettingsProvider to finish loading config from Rust so we have
@@ -457,14 +443,6 @@ class _LDownloadAppState extends State<LDownloadApp>
       _waitForConfigAndHandleTorrentFiles();
     }
 
-    // 监听更新服务 — changelog 就绪后自动弹出更新日志弹窗
-    UpdateService.instance.addListener(_onUpdateServiceChanged);
-    // 主动消费一次：若失败标记响应在监听器注册前就已到达（notifyListeners
-    // 已触发但当时无监听者），此处补偿一次，避免错过更新失败提示。
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _onUpdateServiceChanged();
-    });
-
     // Listen for args from second instances (single-instance enforcement).
     // When a second instance is launched (e.g. double-clicking a .torrent
     // file while the app is already running), the native C++ layer sends
@@ -478,7 +456,6 @@ class _LDownloadAppState extends State<LDownloadApp>
   void dispose() {
     logInfo('LDownloadApp', 'dispose called');
     _pendingRescan?.cancel();
-    UpdateService.instance.removeListener(_onUpdateServiceChanged);
     _singleInstanceChannel.setMethodCallHandler(null);
     TrayService.instance.onExitApp = null;
     HlsQualityService.shutdown();
@@ -535,70 +512,6 @@ class _LDownloadAppState extends State<LDownloadApp>
     if (mounted) setState(() {});
     // 语言变更后刷新托盘菜单
     TrayService.instance.refreshMenu();
-  }
-
-  /// 当 UpdateService 状态变化时，检查是否应该弹出更新日志弹窗 / 更新失败提示。
-  void _onUpdateServiceChanged() {
-    final svc = UpdateService.instance;
-
-    // 优先处理「上次更新失败」标记（便携版覆盖文件失败等）。
-    if (svc.pendingFailureMessage.isNotEmpty) {
-      _showUpdateFailureDialog(svc.pendingFailureMessage);
-      // 立刻确认，避免 notifyListeners 再次触发重复弹窗。
-      svc.acknowledgeFailureMarker();
-      return;
-    }
-
-    if (!svc.shouldShowChangelog) return;
-    if (!mounted) return;
-
-    final ctx = _navigatorKey.currentContext;
-    if (ctx == null) return;
-
-    logInfo('LDownloadApp', 'showing update changelog dialog');
-    svc.markChangelogShown();
-
-    showUpdateChangelogDialog(
-      ctx,
-      releases: svc.changelogReleases,
-      latestVersion: svc.checkResult?.latestVersion ?? '',
-      currentVersion: svc.currentVersion,
-      onUpdate: () => svc.downloadUpdate(),
-      onLater: () {
-        // No-op — dialog already dismissed, changelog marked as shown.
-      },
-    );
-  }
-
-  /// 弹出「上次更新失败」提示对话框，引导用户手动恢复 / 重新下载。
-  void _showUpdateFailureDialog(String message) {
-    if (!mounted) return;
-    final ctx = _navigatorKey.currentContext;
-    if (ctx == null) return;
-
-    final s = S.of(currentLocale);
-    logInfo('LDownloadApp', 'showing update failure dialog');
-
-    showShadDialog<void>(
-      context: ctx,
-      builder: (dialogCtx) => ShadDialog.alert(
-        title: Text(s.updateFailedTitle),
-        description: Padding(
-          padding: const EdgeInsets.only(top: 8),
-          child: Text(message),
-        ),
-        actions: [
-          ShadButton.outline(
-            onPressed: () => launchUrl(Uri.parse('https://dicad.cn')),
-            child: Text(s.updateFailedOpenSite),
-          ),
-          ShadButton(
-            onPressed: () => Navigator.of(dialogCtx).pop(),
-            child: Text(s.confirm),
-          ),
-        ],
-      ),
-    );
   }
 
   /// Wait for SettingsProvider to finish loading config from Rust, then handle
@@ -1104,10 +1017,6 @@ class _LDownloadAppState extends State<LDownloadApp>
                 label: s.menuAbout,
                 onSelected: () => AppMenuCallbacks.openAbout?.call(),
               ),
-              PlatformMenuItem(
-                label: s.menuCheckForUpdates,
-                onSelected: () => UpdateService.instance.checkForUpdate(),
-              ),
             ],
           ),
           // Settings
@@ -1294,13 +1203,6 @@ class _LDownloadAppState extends State<LDownloadApp>
           PlatformMenuItem(
             label: s.menuWebsite,
             onSelected: () => launchUrl(Uri.parse('https://dicad.cn')),
-          ),
-          PlatformMenuItem(
-            label: s.menuFeedback,
-            onSelected: () {
-              final ctx = _navigatorKey.currentContext;
-              if (ctx != null) showFeedbackDialog(ctx);
-            },
           ),
         ],
       ),
