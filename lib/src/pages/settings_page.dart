@@ -7,6 +7,7 @@ import 'package:file_selector/file_selector.dart';
 import '../services/file_picker_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/build_stats.dart';
+import '../services/extension_install_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -1403,9 +1404,7 @@ class _SettingsContentState extends State<_SettingsContent> {
       SettingsCategory.doctor => DoctorReportView(
         settingsProvider: settingsProvider,
       ),
-      SettingsCategory.about => _AboutContent(
-        settingsProvider: settingsProvider,
-      ),
+      SettingsCategory.about => const _AboutContent(),
     };
   }
 }
@@ -10523,161 +10522,31 @@ class _GradientSlider extends StatelessWidget {
 // ─────────────────────────────────────────────
 
 class _AboutContent extends StatelessWidget {
-  const _AboutContent({required this.settingsProvider});
-
-  final SettingsProvider settingsProvider;
+  const _AboutContent();
 
   @override
   Widget build(BuildContext context) {
     final c = AppColors.of(context);
-    return ListenableBuilder(
-      listenable: Listenable.merge([UpdateService.instance, settingsProvider]),
-      builder: (context, _) {
-        final svc = UpdateService.instance;
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // App info card
-            _SettingCard(
-              label: 'LDownload',
-              description: LocaleScope.of(context).appDescription,
-              vertical: true,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _infoRow(
-                    c,
-                    LocaleScope.of(context).currentVersion,
-                    svc.currentVersion == 'dev'
-                        ? 'dev'
-                        : 'v${svc.currentVersion}',
-                  ),
-                  if (svc.checkResult != null && svc.checkResult!.hasUpdate)
-                    _infoRow(
-                      c,
-                      LocaleScope.of(context).latestVersion,
-                      'v${svc.checkResult!.latestVersion}',
-                    ),
-                  if (svc.checkResult != null && svc.checkResult!.hasUpdate)
-                    _infoRow(
-                      c,
-                      LocaleScope.of(context).publishDate,
-                      _formatDate(svc.checkResult!.publishedAt),
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 10),
-            // Update card
-            _SettingCard(
-              label: LocaleScope.of(context).softwareUpdate,
-              description: LocaleScope.of(context).checkUpdateDesc,
-              vertical: true,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              LocaleScope.of(context).autoCheckUpdate,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: c.textPrimary,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              LocaleScope.of(context).autoCheckUpdateDesc,
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: c.textMuted,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      ShadSwitch(
-                        value: settingsProvider.autoCheckUpdate,
-                        onChanged: (v) =>
-                            settingsProvider.setAutoCheckUpdate(v),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              LocaleScope.of(context).updateChannel,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: c.textPrimary,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              LocaleScope.of(context).updateChannelDesc,
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: c.textMuted,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      ShadSelect<String>(
-                        initialValue: settingsProvider.updateChannel,
-                        options: [
-                          ShadOption(
-                            value: 'stable',
-                            child: Text(
-                              LocaleScope.of(context).updateChannelStable,
-                            ),
-                          ),
-                          ShadOption(
-                            value: 'frontier',
-                            child: Text(
-                              LocaleScope.of(context).updateChannelFrontier,
-                            ),
-                          ),
-                        ],
-                        selectedOptionBuilder: (context, value) => Text(
-                          value == 'frontier'
-                              ? LocaleScope.of(context).updateChannelFrontier
-                              : LocaleScope.of(context).updateChannelStable,
-                        ),
-                        onChanged: (v) {
-                          if (v != null) settingsProvider.setUpdateChannel(v);
-                        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  _buildUpdateSection(context, svc, c),
-                ],
-              ),
-            ),
-            const SizedBox(height: 10),
-            // Browser extension card
-            _ExtensionCard(colors: c),
-            const SizedBox(height: 10),
-            // Log export card
-            _LogExportCard(colors: c, settingsProvider: settingsProvider),
-            const SizedBox(height: 10),
-            // Donate card
-            _DonateCard(colors: c),
-          ],
-        );
-      },
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // App info card
+        _SettingCard(
+          label: 'LDownload',
+          description: LocaleScope.of(context).appDescription,
+          vertical: true,
+          child: _infoRow(
+            c,
+            LocaleScope.of(context).currentVersion,
+            UpdateService.instance.currentVersion == 'dev'
+                ? 'dev'
+                : 'v${UpdateService.instance.currentVersion}',
+          ),
+        ),
+        const SizedBox(height: 10),
+        // Browser extension card
+        _ExtensionCard(colors: c),
+      ],
     );
   }
 
@@ -10706,316 +10575,62 @@ class _AboutContent extends StatelessWidget {
     );
   }
 
-  Widget _buildUpdateSection(
-    BuildContext context,
-    UpdateService svc,
-    AppColors c,
-  ) {
-    final status = svc.status;
-    final s = LocaleScope.of(context);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Status message
-        if (status == UpdateStatus.upToDate)
-          _statusRow(c, LucideIcons.circleCheck, AppColors.green, s.upToDate),
-        if (status == UpdateStatus.error)
-          _statusRow(
-            c,
-            LucideIcons.circleAlert,
-            AppColors.red,
-            svc.errorMessage,
-          ),
-        if (status == UpdateStatus.available)
-          _statusRow(
-            c,
-            LucideIcons.circleArrowDown,
-            AppColors.amber,
-            s.newVersionFound(svc.checkResult?.latestVersion ?? ''),
-          ),
-        if (status == UpdateStatus.readyToInstall)
-          _statusRow(
-            c,
-            LucideIcons.circleCheck,
-            AppColors.green,
-            s.downloadComplete,
-          ),
-
-        // Download progress
-        if (status == UpdateStatus.downloading) ...[
-          _statusRow(c, LucideIcons.download, c.accent, s.downloadingUpdate),
-          const SizedBox(height: 10),
-          _buildProgressSection(context, svc, c),
-        ],
-
-        const SizedBox(height: 14),
-
-        // Action buttons
-        Row(
-          children: [
-            if (status == UpdateStatus.idle ||
-                status == UpdateStatus.upToDate ||
-                status == UpdateStatus.error)
-              ShadButton.outline(
-                size: ShadButtonSize.sm,
-                enabled: status != UpdateStatus.checking,
-                onPressed: svc.checkForUpdate,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (status == UpdateStatus.checking) ...[
-                      SizedBox(
-                        width: 12,
-                        height: 12,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 1.5,
-                          color: c.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(s.checking),
-                    ] else ...[
-                      Icon(
-                        LucideIcons.refreshCw,
-                        size: 13,
-                        color: c.textSecondary,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(s.checkUpdate),
-                    ],
-                  ],
-                ),
-              ),
-            if (status == UpdateStatus.error && svc.canFallbackToTask) ...[
-              const SizedBox(width: 8),
-              ShadButton.outline(
-                size: ShadButtonSize.sm,
-                onPressed: () {
-                  if (svc.downloadUpdateViaTask()) {
-                    FluxSonner.of(context).show(
-                      ShadToast(
-                        title: Text(s.updateFallbackTaskCreated),
-                        duration: const Duration(seconds: 3),
-                      ),
-                    );
-                  }
-                },
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      LucideIcons.circlePlus,
-                      size: 13,
-                      color: c.textSecondary,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(s.updateFallbackToTask),
-                  ],
-                ),
-              ),
-            ],
-            if (status == UpdateStatus.checking)
-              ShadButton.outline(
-                size: ShadButtonSize.sm,
-                enabled: false,
-                onPressed: () {},
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SizedBox(
-                      width: 12,
-                      height: 12,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 1.5,
-                        color: c.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(s.checking),
-                  ],
-                ),
-              ),
-            if (status == UpdateStatus.available) ...[
-              ShadButton(
-                size: ShadButtonSize.sm,
-                onPressed: svc.downloadUpdate,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      LucideIcons.download,
-                      size: 13,
-                      color: Colors.white,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      s.downloadUpdate(
-                        UpdateService.formatBytes(
-                          svc.checkResult?.fileSize ?? 0,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              ShadButton.outline(
-                size: ShadButtonSize.sm,
-                onPressed: svc.checkForUpdate,
-                child: Text(s.recheck),
-              ),
-            ],
-            if (status == UpdateStatus.readyToInstall) ...[
-              ShadButton(
-                size: ShadButtonSize.sm,
-                onPressed: svc.installUpdate,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      LucideIcons.rotateCcw,
-                      size: 13,
-                      color: Colors.white,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(s.installAndRestart),
-                  ],
-                ),
-              ),
-            ],
-            const Spacer(),
-            MouseRegion(
-              cursor: SystemMouseCursors.click,
-              child: GestureDetector(
-                onTap: () => launchUrl(Uri.parse('https://dicad.cn')),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(LucideIcons.globe, size: 12, color: c.accent),
-                    const SizedBox(width: 5),
-                    Text(
-                      s.officialWebsite,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: c.accent,
-                        decoration: TextDecoration.underline,
-                        decorationColor: c.accent,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _statusRow(AppColors c, IconData icon, Color color, String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: Row(
-        children: [
-          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              text,
-              style: TextStyle(fontSize: 12, color: c.textPrimary),
-              overflow: TextOverflow.ellipsis,
-              maxLines: 2,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProgressSection(
-    BuildContext context,
-    UpdateService svc,
-    AppColors c,
-  ) {
-    final p = svc.progress;
-    if (p == null) return const SizedBox.shrink();
-
-    final m = AppMetrics.of(context);
-    final s = LocaleScope.of(context);
-    final fraction = p.totalBytes > 0
-        ? (p.downloadedBytes / p.totalBytes).clamp(0.0, 1.0)
-        : 0.0;
-    final pctText = '${(fraction * 100).toStringAsFixed(1)}%';
-    final sizeText =
-        '${UpdateService.formatBytes(p.downloadedBytes)} / ${UpdateService.formatBytes(p.totalBytes)}';
-    final speedText = UpdateService.formatSpeed(p.speed);
-    final segments = p.segments;
-    final activeSegments = p.activeSegments;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        ClipRRect(
-          borderRadius: m.brXs,
-          child: LinearProgressIndicator(
-            value: fraction,
-            backgroundColor: c.surface2,
-            valueColor: AlwaysStoppedAnimation<Color>(c.accent),
-            minHeight: 6,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Row(
-          children: [
-            Text(
-              '$pctText  $sizeText',
-              style: TextStyle(fontSize: 11, color: c.textMuted),
-            ),
-            const Spacer(),
-            if (segments > 1) ...[
-              Icon(LucideIcons.layers, size: 11, color: m.emphasis(c.accent)),
-              const SizedBox(width: 3),
-              Text(
-                s.segmentsDownloading(activeSegments, segments),
-                style: TextStyle(fontSize: 11, color: m.emphasis(c.accent)),
-              ),
-              const SizedBox(width: 10),
-            ],
-            Text(speedText, style: TextStyle(fontSize: 11, color: c.textMuted)),
-          ],
-        ),
-      ],
-    );
-  }
-
-  String _formatDate(String isoDate) {
-    if (isoDate.isEmpty) return '';
-    final dt = DateTime.tryParse(isoDate);
-    if (dt == null) return isoDate;
-    return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
-  }
 }
 
 // ─────────────────────────────────────────────
 // 浏览器扩展卡片
 // ─────────────────────────────────────────────
 
-class _ExtensionCard extends StatelessWidget {
+class _ExtensionCard extends StatefulWidget {
   final AppColors colors;
   const _ExtensionCard({required this.colors});
 
-  static const _chromeStoreUrl =
-      'https://chromewebstore.google.com/detail/ldownload/meleenglfggcmcajknpeeeiobnpfmahc';
-  static const _firefoxStoreUrl =
-      'https://addons.mozilla.org/firefox/addon/ldownload/';
-  static const _edgeStoreUrl =
-      'https://microsoftedge.microsoft.com/addons/detail/ldownload/nglkkjbogjghekbhhcnccnpfedjbdhhd';
-  static const _offlinePackagesUrl = 'https://dicad.cn/#download';
+  @override
+  State<_ExtensionCard> createState() => _ExtensionCardState();
+}
+
+class _ExtensionCardState extends State<_ExtensionCard> {
+  String? _installingBrowser;
+
+  Future<void> _install(String browser) async {
+    if (_installingBrowser != null) return;
+    setState(() => _installingBrowser = browser);
+
+    final s = LocaleScope.of(context);
+    final result = await switch (browser) {
+      'chrome' => ExtensionInstallService.installChrome(),
+      'edge' => ExtensionInstallService.installEdge(),
+      'firefox' => ExtensionInstallService.installFirefox(),
+      _ => Future.value(InstallResult.notSupported),
+    };
+
+    if (mounted) {
+      setState(() => _installingBrowser = null);
+      final toast = switch (result) {
+        InstallResult.success => ShadToast(
+            title: Text(s.extensionInstallSuccess),
+            duration: const Duration(seconds: 5),
+          ),
+        InstallResult.browserNotFound => ShadToast.destructive(
+            title: Text(s.extensionInstallBrowserNotFound(browser)),
+            duration: const Duration(seconds: 3),
+          ),
+        InstallResult.assetMissing => ShadToast.destructive(
+            title: Text(s.extensionInstallAssetMissing),
+            duration: const Duration(seconds: 4),
+          ),
+        InstallResult.notSupported => ShadToast.destructive(
+            title: Text(s.extensionInstallNotSupported),
+            duration: const Duration(seconds: 3),
+          ),
+      };
+      FluxSonner.of(context).show(toast);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final c = colors;
+    final c = widget.colors;
     final s = LocaleScope.of(context);
     return _SettingCard(
       label: s.extensionCardTitle,
@@ -11025,47 +10640,52 @@ class _ExtensionCard extends StatelessWidget {
         spacing: 8,
         runSpacing: 8,
         children: [
-          _linkButton(
-            label: s.extensionChromeStore,
-            url: _chromeStoreUrl,
+          _installButton(
+            browser: 'chrome',
+            label: s.extensionInstallChrome,
             colors: c,
           ),
-          _linkButton(
-            label: s.extensionFirefoxStore,
-            url: _firefoxStoreUrl,
+          _installButton(
+            browser: 'edge',
+            label: s.extensionInstallEdge,
             colors: c,
           ),
-          _linkButton(
-            label: s.extensionEdgeStore,
-            url: _edgeStoreUrl,
+          _installButton(
+            browser: 'firefox',
+            label: s.extensionInstallFirefox,
             colors: c,
-          ),
-          _linkButton(
-            label: s.extensionOfflinePackages,
-            url: _offlinePackagesUrl,
-            colors: c,
-            icon: LucideIcons.download,
           ),
         ],
       ),
     );
   }
 
-  Widget _linkButton({
+  Widget _installButton({
+    required String browser,
     required String label,
-    required String url,
     required AppColors colors,
-    IconData icon = LucideIcons.puzzle,
   }) {
+    final loading = _installingBrowser == browser;
     return ShadButton.outline(
       size: ShadButtonSize.sm,
-      onPressed: () => launchUrl(Uri.parse(url)),
+      enabled: _installingBrowser == null,
+      onPressed: loading ? null : () => _install(browser),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 13, color: colors.textSecondary),
+          if (loading)
+            SizedBox(
+              width: 13,
+              height: 13,
+              child: CircularProgressIndicator(
+                strokeWidth: 1.5,
+                color: colors.textSecondary,
+              ),
+            )
+          else
+            Icon(LucideIcons.puzzle, size: 13, color: colors.textSecondary),
           const SizedBox(width: 6),
-          Text(label),
+          Text(loading ? LocaleScope.of(context).extensionInstalling : label),
         ],
       ),
     );
@@ -11073,252 +10693,6 @@ class _ExtensionCard extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────
-// 捐赠卡片
-// ─────────────────────────────────────────────
-
-class _DonateCard extends StatelessWidget {
-  final AppColors colors;
-  const _DonateCard({required this.colors});
-
-  /// 构建期注入的首次 commit 日期，按当前语言格式化。
-  String _firstDateText(S s) {
-    final dt = DateTime.tryParse(statsFirstCommitDate);
-    if (dt == null) return statsFirstCommitDate;
-    return s.donateDate(dt.year, dt.month, dt.day);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final c = colors;
-    final s = LocaleScope.of(context);
-    return _SettingCard(
-      label: s.donateTitle,
-      description: s.donateThanks,
-      vertical: true,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            s.donateBody(
-              _firstDateText(s),
-              statsReleaseCount,
-              statsCommitCount,
-            ),
-            style: TextStyle(fontSize: 12, height: 1.6, color: c.textSecondary),
-          ),
-          const SizedBox(height: 12),
-          ShadButton(
-            size: ShadButtonSize.sm,
-            onPressed: () =>
-                launchUrl(Uri.parse('https://dicad.cn/sponsor')),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(LucideIcons.heart, size: 13, color: Colors.white),
-                const SizedBox(width: 6),
-                Text(s.donateButton),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────
-// 日志导出卡片
-// ─────────────────────────────────────────────
-
-class _LogExportCard extends StatefulWidget {
-  final AppColors colors;
-  final SettingsProvider settingsProvider;
-  const _LogExportCard({required this.colors, required this.settingsProvider});
-
-  @override
-  State<_LogExportCard> createState() => _LogExportCardState();
-}
-
-class _LogExportCardState extends State<_LogExportCard> {
-  bool _exporting = false;
-
-  /// 日志总大小上限可选项（MB）
-  static const _maxSizeOptions = [5, 10, 20, 50, 100];
-
-  Future<void> _exportLogs() async {
-    if (_exporting) return;
-    setState(() => _exporting = true);
-    try {
-      final s = LocaleScope.of(context);
-      final now = DateTime.now();
-      final datePart =
-          '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}';
-      final result = await FilePickerService.saveFile(
-        dialogTitle: s.logSelectExportDir,
-        fileName: 'ldownload_logs_$datePart.zip',
-        allowedExtensions: ['zip'],
-      );
-      if (result == null || !mounted) {
-        if (mounted) setState(() => _exporting = false);
-        return;
-      }
-      final savePath = result.endsWith('.zip') ? result : '$result.zip';
-      final count = await LogService.instance.exportLogs(savePath);
-      if (!mounted) return;
-      if (count > 0) {
-        FluxSonner.of(context).show(
-          ShadToast(
-            title: Text(s.logExportSuccess(count)),
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      } else {
-        FluxSonner.of(context).show(
-          ShadToast(
-            title: Text(s.logExportEmpty),
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        FluxSonner.of(context).show(
-          ShadToast.destructive(
-            title: Text(LocaleScope.of(context).logExportFailed),
-            description: Text(e.toString()),
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _exporting = false);
-    }
-  }
-
-  void _openLogDir() {
-    final path = LogService.instance.logDir.path;
-    if (Platform.isWindows) {
-      Process.run('explorer', [path]);
-    } else if (Platform.isMacOS) {
-      Process.run('open', [path]);
-    } else {
-      Process.run('xdg-open', [path]);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final c = widget.colors;
-    final s = LocaleScope.of(context);
-    final fileCount = LogService.instance.logFileCount;
-    final sizeBytes = LogService.instance.logDirSizeBytes;
-    final sizeText = UpdateService.formatBytes(sizeBytes);
-
-    return _SettingCard(
-      label: s.logExport,
-      description: s.logExportDesc,
-      vertical: true,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            s.logExportInfo(fileCount, sizeText),
-            style: TextStyle(fontSize: 12, color: c.textMuted),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      s.logMaxSize,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: c.textPrimary,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      s.logMaxSizeDesc,
-                      style: TextStyle(fontSize: 11, color: c.textMuted),
-                    ),
-                  ],
-                ),
-              ),
-              ShadSelect<int>(
-                initialValue: widget.settingsProvider.logMaxSizeMb,
-                placeholder: Text('${widget.settingsProvider.logMaxSizeMb} MB'),
-                options: _maxSizeOptions
-                    .map((mb) => ShadOption(value: mb, child: Text('$mb MB')))
-                    .toList(),
-                selectedOptionBuilder: (context, value) => Text('$value MB'),
-                onChanged: (v) {
-                  if (v != null) {
-                    widget.settingsProvider.setLogMaxSizeMb(v);
-                    setState(() {});
-                  }
-                },
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              ShadButton.outline(
-                size: ShadButtonSize.sm,
-                enabled: !_exporting,
-                onPressed: _exportLogs,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (_exporting) ...[
-                      SizedBox(
-                        width: 12,
-                        height: 12,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 1.5,
-                          color: c.textSecondary,
-                        ),
-                      ),
-                    ] else ...[
-                      Icon(
-                        LucideIcons.fileDown,
-                        size: 13,
-                        color: c.textSecondary,
-                      ),
-                    ],
-                    const SizedBox(width: 6),
-                    Text(s.logExportButton),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              ShadButton.outline(
-                size: ShadButtonSize.sm,
-                onPressed: _openLogDir,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      LucideIcons.folderOpen,
-                      size: 13,
-                      color: c.textSecondary,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(s.logOpenDirButton),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 // ─────────────────────────────────────────────
 // 账户页面 —— FluxCloud 登录/注册/设备管理

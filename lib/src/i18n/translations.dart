@@ -1360,6 +1360,15 @@ class S {
   String get donateButton => _r('donateButton');
   String get extensionCardTitle => _r('extensionCardTitle');
   String get extensionCardDesc => _r('extensionCardDesc');
+  String get extensionInstallChrome => _r('extensionInstallChrome');
+  String get extensionInstallEdge => _r('extensionInstallEdge');
+  String get extensionInstallFirefox => _r('extensionInstallFirefox');
+  String get extensionInstalling => _r('extensionInstalling');
+  String get extensionInstallSuccess => _r('extensionInstallSuccess');
+  String extensionInstallBrowserNotFound(String browser) =>
+      _r('extensionInstallBrowserNotFound', {'browser': browser});
+  String get extensionInstallAssetMissing => _r('extensionInstallAssetMissing');
+  String get extensionInstallNotSupported => _r('extensionInstallNotSupported');
   String get extensionChromeStore => _r('extensionChromeStore');
   String get extensionFirefoxStore => _r('extensionFirefoxStore');
   String get extensionEdgeStore => _r('extensionEdgeStore');
