@@ -275,20 +275,24 @@ class HeaderBarState extends State<HeaderBar> {
             // New download button
             ShadButton(
               onPressed: widget.onNewDownload,
-              height: 30,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
+              height: 32,
+              padding: const EdgeInsets.symmetric(horizontal: 14),
               backgroundColor: c.accent,
               hoverBackgroundColor: c.accentHover,
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(LucideIcons.plus, size: 14, color: Colors.white),
+                  Icon(
+                    LucideIcons.plus,
+                    size: 14,
+                    color: c.accentForeground,
+                  ),
                   const SizedBox(width: 6),
                   Text(
                     s.newDownload,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
-                      color: Colors.white,
+                      color: c.accentForeground,
                       fontWeight: FontWeight.w500,
                     ),
                   ),

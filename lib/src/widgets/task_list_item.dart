@@ -295,7 +295,7 @@ class _TaskListItemState extends State<TaskListItem> {
             width: 18,
             height: 18,
             decoration: BoxDecoration(
-              color: const Color(0xFFF59E0B), // amber-500
+              color: c.statusWarning,
               borderRadius: m.brSm,
             ),
             child: const Center(
@@ -316,7 +316,11 @@ class _TaskListItemState extends State<TaskListItem> {
                   Flexible(
                     child: OverflowTooltipText(
                       task.fileName,
-                      style: TextStyle(fontSize: 13, color: c.textPrimary),
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: c.textPrimary,
+                      ),
                     ),
                   ),
                   if (widget.protocolBadges) ...[
@@ -373,12 +377,13 @@ class _ProtocolBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = AppColors.of(context);
+    final m = AppMetrics.of(context);
     final label = task.siteKey == 'bt' ? 'BT' : task.protocolLabel;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
       decoration: BoxDecoration(
         color: c.surface2,
-        borderRadius: const BorderRadius.all(Radius.circular(4)),
+        borderRadius: m.brSm,
       ),
       child: Text(
         label.toUpperCase(),
@@ -434,12 +439,13 @@ class _DeviceBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = AppColors.of(context);
+    final m = AppMetrics.of(context);
     final s = LocaleScope.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
       decoration: BoxDecoration(
         color: c.surface2,
-        borderRadius: const BorderRadius.all(Radius.circular(4)),
+        borderRadius: m.brSm,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

@@ -89,16 +89,21 @@ class FluxMetricTokens {
 
   /// 全字段具名带默认值（默认 = 迁移前最高频字面量）。构造函数纯赋值，
   /// 无方法调用，保证 `const` 合法、可作 [FluxThemeTokens] 默认参数值。
+  ///
+  /// 圆角尺度（v2 收敛）：`progress 1.5 / xs 2 / segmentCell 2.5 / sm 4 /
+  /// md 6 / input 9 / card 10 / iconTile 10 / dialog 12` —— 让高频表面
+  /// （卡片/图标块/对话框）比旧值更圆润一档，输入框略收，形成「控件方、
+  /// 容器圆」的现代桌面观感。
   const FluxMetricTokens({
     double radiusProgress = 1.5,
     double radiusXs = 2,
     double radiusSegmentCell = 2.5,
     double radiusSm = 4,
     double radiusMd = 6,
-    double radiusInput = 8,
-    double radiusCard = 8,
-    double radiusIconTile = 8,
-    double radiusDialog = 10,
+    double radiusInput = 9,
+    double radiusCard = 10,
+    double radiusIconTile = 10,
+    double radiusDialog = 12,
     double radiusFieldMobile = 12,
     double radiusChipLg = 12,
     double radiusChipXl = 12,

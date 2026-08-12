@@ -6,18 +6,34 @@ import 'package:archive/archive_io.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 
-import 'platform_utils.dart';
+import '../bindings/bindings.dart';
 import 'log_service.dart';
+import 'platform_utils.dart';
 
 /// 浏览器扩展内置安装服务。
 ///
-/// 将 Chrome/Edge/Firefox 扩展包内置到 App assets 中，用户在「关于」页点击
-/// 对应按钮即可一键释放扩展并唤起浏览器完成安装，无需跳转网页下载。
-/// 若当前构建未内嵌扩展包（如本地开发），返回 [InstallResult.assetMissing]，
-/// UI 应提示用户去 GitHub Release 手动下载或先放置资源文件。
+/// **为什么不是「一键装好」**：Chrome 137+（2025-06）已移除
+/// `--load-extension` 命令行侧载，Firefox 也移除了 `file://*.xpi` 直开安装。
+/// 因此本服务的「安装」实为「解压 + 引导」四步：
+///
+/// 1. 把内嵌扩展包解压到应用数据目录的稳定路径；
+/// 2. 打开浏览器的扩展管理页（chrome://extensions / edge://extensions /
+///    about:debugging#/runtime/this-firefox）——Chrome 137+ 唯一可靠入口；
+/// 3. 同时在系统文件管理器里打开解压目录，让用户「加载已解压的扩展程序 /
+///    临时加载附加组件」时一步选到（无需手动翻路径）；
+/// 4. 触发 [RepairNmhRegistration] 信号注册 Native Messaging Host（NMH），
+///    否则扩展即使装上也无法与桌面端通信（此前「装上了但连不上」的根因）。
+///
+/// 若当前构建未内嵌扩展包（如本地开发 / CI 未注入），返回
+/// [InstallResult.assetMissing]，UI 应展示 [ExtensionInstallService.releaseUrl]
+/// 让用户去 GitHub Release 手动下载扩展包。
 class ExtensionInstallService {
   static const String _chromeAsset = 'assets/extensions/ldownload-chrome.zip';
   static const String _firefoxAsset = 'assets/extensions/ldownload-firefox.xpi';
+
+  /// 官方发布页（内置包缺失时引导用户手动下载扩展包）。
+  static const String releaseUrl =
+      'https://github.com/luoda2023/LDownload/releases';
 
   // Chrome 扩展固定 ID：meleenglfggcmcajknpeeeiobnpfmahc（侧载含 key，ID 稳定）
   // Firefox 扩展 ID：ldownload@ldownload.app
@@ -28,29 +44,23 @@ class ExtensionInstallService {
   // ignore: unused_field
   static const String _firefoxId = 'ldownload@ldownload.app';
 
-  /// 安装 Chrome 扩展（侧载）。
+  /// 安装 Chrome 扩展（引导式侧载）。
   static Future<InstallResult> installChrome() async {
-    return _installChromium('chrome', 'Chrome');
+    return _installChromium('chrome', 'Chrome', 'chrome://extensions');
   }
 
-  /// 安装 Edge 扩展（侧载）。
+  /// 安装 Edge 扩展（引导式侧载）。
   /// Edge 商店包剔除了 key，侧载无法固定 ID；因此复用 Chrome 包（含 key），
   /// 其扩展 ID 已列入 NMH allowed_origins，Native Messaging 可正常通信。
   static Future<InstallResult> installEdge() async {
-    return _installChromium('edge', 'Edge');
+    return _installChromium('edge', 'Edge', 'edge://extensions');
   }
 
-  /// 安装 Firefox 扩展。
+  /// 安装 Firefox 扩展（引导式临时加载）。
   ///
-  /// 双路线：
-  /// 1. 若 assets 内嵌了签名 XPI（CI 正常产出时）→ 解压到目录，打开
-  ///    `about:debugging` 引导「临时加载附加组件」（Firefox 109+ 仍支持
-  ///    about:debugging 临时加载未签名扩展；`file://*.xpi` 直开安装已被
-  ///    Firefox 移除，旧实现不可用）。
-  /// 2. 若 XPI 缺失（AMO 签名凭据失效导致 CI 未产出，v10.0.3/v10.0.4 实际
-  ///    如此）→ 返回 [InstallResult.assetMissing] 并提示去 GitHub Release
-  ///    手动下载。**注意**：缺失时绝不能让用户去 about:debugging 加载空目录
-  ///    （旧实现假成功：目录是空的却返回 success）。
+  /// Firefox 109+ 已移除 `file://*.xpi` 直开安装；未签名 XPI 只能经
+  /// `about:debugging#/runtime/this-firefox`「临时加载附加组件」加载。
+  /// 解压目录稳定在 `dataDir/extensions/firefox-mv2/`。
   static Future<InstallResult> installFirefox() async {
     if (!Platform.isWindows && !Platform.isMacOS && !Platform.isLinux) {
       return InstallResult.notSupported;
@@ -71,7 +81,6 @@ class ExtensionInstallService {
       extractArchiveToDisk(archive, extRoot.path);
     } catch (e) {
       logInfo('extension_install', 'Firefox XPI 解压失败: $e');
-      // 解压失败视为资源损坏。
       return InstallResult.assetMissing;
     }
 
@@ -80,15 +89,20 @@ class ExtensionInstallService {
       return InstallResult.browserNotFound;
     }
 
-    // 打开 about:debugging，用户在 UI 引导下点「临时加载附加组件」→ 选择
-    // 解压目录（含 manifest.json）。比 file://*.xpi 可靠（后者已被移除）。
-    await Process.run(firefoxExe, ['about:debugging']);
+    // 注册 NMH：扩展 ↔ 桌面端通信的前置条件（幂等，hub 侧按浏览器补齐）。
+    RepairNmhRegistration().sendSignalToRust();
+
+    // 打开 about:debugging 临时加载页 + 文件管理器里的解压目录。
+    await Process.run(firefoxExe, ['about:debugging#/runtime/this-firefox']);
+    await _revealDirectory(extRoot.path);
     return InstallResult.success;
   }
 
+  /// Chromium（Chrome/Edge）统一引导流。
   static Future<InstallResult> _installChromium(
     String browserKey,
     String browserName,
+    String extensionsUrl,
   ) async {
     if (!Platform.isWindows && !Platform.isMacOS && !Platform.isLinux) {
       return InstallResult.notSupported;
@@ -104,12 +118,17 @@ class ExtensionInstallService {
     // 清空旧扩展目录。
     await _clearDirectory(extRoot);
 
-    // 解压到 chrome-mv3/，load-extension 需要指向 manifest.json 所在目录。
-    final archive = ZipDecoder().decodeBytes(zipBytes);
-    extractArchiveToDisk(archive, extRoot.path);
+    // 解压到 chrome-mv3/，Load unpacked 需要指向 manifest.json 所在目录。
+    try {
+      final archive = ZipDecoder().decodeBytes(zipBytes);
+      extractArchiveToDisk(archive, extRoot.path);
+    } catch (e) {
+      logInfo('extension_install', '$browserName 扩展解压失败: $e');
+      return InstallResult.assetMissing;
+    }
 
-    // CI 打包的是 chrome-mv3/ 子目录，所以实际 manifest 在 chrome-mv3/chrome-mv3/ 下。
-    // 优先尝试 chrome-mv3/ 子目录，否则用 extRoot 本身。
+    // CI 打包的是 chrome-mv3/ 子目录，所以实际 manifest 在
+    // chrome-mv3/chrome-mv3/ 下。优先尝试子目录，否则用 extRoot 本身。
     final nestedDir = Directory(p.join(extRoot.path, 'chrome-mv3'));
     final loadDir = await nestedDir.exists() ? nestedDir.path : extRoot.path;
 
@@ -118,16 +137,31 @@ class ExtensionInstallService {
       return InstallResult.browserNotFound;
     }
 
-    // 启动浏览器并加载扩展。
-    // 注意：Chrome 137+ 移除了 `--load-extension` 命令行侧载（2025-06），
-    // 该参数在旧版仍有效。因此双管齐下：
-    //   1) 传 --load-extension（旧版 Chrome / 部分 Edge 分支生效）
-    //   2) 同时打开 chrome://extensions，引导用户开启「开发者模式」手动
-    //      「加载已解压的扩展程序」——新版本 Chrome/Edge 的唯一可靠路径。
-    // 若浏览器已运行，新进程参数可能被忽略；引导页仍会打开。
-    await Process.run(exe, ['--load-extension=$loadDir']);
-    await Process.run(exe, [browserKey == 'edge' ? 'edge://extensions' : 'chrome://extensions']);
+    // 注册 NMH：扩展 ↔ 桌面端通信的前置条件。
+    RepairNmhRegistration().sendSignalToRust();
+
+    // Chrome 137+ 移除 --load-extension，别再传该参数（会产生
+    // "unsupported command-line flag" 黄条且无效）。只打开扩展管理页 +
+    // 文件管理器目录，由用户在页面内「开发者模式 → 加载已解压的扩展程序」
+    // 选择 loadDir —— 这是新版本 Chrome/Edge 唯一可靠路径。
+    await Process.run(exe, [extensionsUrl]);
+    await _revealDirectory(loadDir);
     return InstallResult.success;
+  }
+
+  /// 在系统文件管理器中打开目录（Explorer / Finder / Nautilus）。
+  static Future<void> _revealDirectory(String path) async {
+    try {
+      if (Platform.isWindows) {
+        await Process.run('explorer.exe', [path]);
+      } else if (Platform.isMacOS) {
+        await Process.run('open', [path]);
+      } else if (Platform.isLinux) {
+        await Process.run('xdg-open', [path]);
+      }
+    } catch (e) {
+      logInfo('extension_install', '打开目录失败: $e');
+    }
   }
 
   /// 从 Flutter assets 加载文件。
@@ -190,12 +224,16 @@ class ExtensionInstallService {
   static List<String> _browserDefaultPaths(String browser) {
     if (Platform.isWindows) {
       final pf = Platform.environment['ProgramFiles'] ?? r'C:\Program Files';
-      final pf86 = Platform.environment['ProgramFiles(x86)'] ?? r'C:\Program Files (x86)';
+      final pf86 =
+          Platform.environment['ProgramFiles(x86)'] ?? r'C:\Program Files (x86)';
       return switch (browser) {
         'chrome' => [
           p.join(pf, r'Google\Chrome\Application\chrome.exe'),
           p.join(pf86, r'Google\Chrome\Application\chrome.exe'),
-          p.join(Platform.environment['LOCALAPPDATA'] ?? '', r'Google\Chrome\Application\chrome.exe'),
+          p.join(
+            Platform.environment['LOCALAPPDATA'] ?? '',
+            r'Google\Chrome\Application\chrome.exe',
+          ),
         ],
         'edge' => [
           p.join(pf, r'Microsoft\Edge\Application\msedge.exe'),

@@ -159,11 +159,12 @@ class FluxThemeTokens {
   //  内置预设
   // ═══════════════════════════════════════════════════════════
 
-  /// 默认暗色主题（Apple 风格深灰）
+  /// 默认暗色主题（Graphite 石墨精密风）
   ///
-  /// 默认 accent 用 Indigo-600（#4F46E5）而非 Bootstrap 系蓝（#3B82F6）：
-  /// 后者是 AI 生成的 UI 最典型模板色（taste-skill 禁令首位）。Indigo 有
-  /// 品牌辨识度、深色底上对比更稳，且用户可在设置里自由改 accent。
+  /// 深灰阶经三轮校准：`background` 压到近黑（#141416）拉开与面板的层级，
+  /// `surface1/2/3` 步进缩小让浮层更细腻；字色与边框全部带轻微冷色，
+  /// 消除纯 Apple 灰的「默认工具」观感。accent 用 Indigo-600（#4F46E5）
+  /// 而非 Bootstrap 系蓝（#3B82F6，AI 模板色禁令首位）。
   static FluxThemeTokens defaultDark({Color accent = const Color(0xFF4F46E5)}) {
     final hsl = HSLColor.fromColor(accent);
     final hover = hsl
@@ -173,22 +174,23 @@ class FluxThemeTokens {
     return FluxThemeTokens(
       name: 'Default Dark',
       appearance: Brightness.dark,
-      // Surface
-      background: const Color(0xFF1C1C1E),
-      surface1: const Color(0xFF2C2C2E),
-      surface2: const Color(0xFF3A3A3C),
-      surface3: const Color(0xFF48484A),
+      // Surface —— 近黑底 + 3 级细腻浮层，层级用「明度差」而非「蓝底」表达
+      background: const Color(0xFF141416),
+      surface1: const Color(0xFF1D1D21),
+      surface2: const Color(0xFF28282E),
+      surface3: const Color(0xFF33333A),
       // Element
-      elementHover: const Color(0xFF424245),
-      elementSelected: const Color(0xFF3A3A3C),
+      elementHover: const Color(0xFF28282E),
+      elementSelected: const Color(0xFF2D2D34),
       elementActive: accent.withValues(alpha: 0.18),
       // Text
       textPrimary: const Color(0xFFF5F5F7),
-      textSecondary: const Color(0xFFA1A1A6),
-      textMuted: const Color(0xFF8E8E93),
-      textDisabled: const Color(0xFF8E8E93).withValues(alpha: 0.5),
+      textSecondary: const Color(0xFFABABB5),
+      // 对比度：textMuted #8A8A96 近黑底 ≈5.3:1（小字 AA 4.5:1 达标且有余量）
+      textMuted: const Color(0xFF8A8A96),
+      textDisabled: const Color(0xFF8A8A96).withValues(alpha: 0.5),
       // Border
-      border: const Color(0xFF48484A),
+      border: const Color(0xFF37373F),
       borderFocused: accent,
       // Accent
       accent: accent,
@@ -196,15 +198,15 @@ class FluxThemeTokens {
       accentBackground: accent.withValues(alpha: 0.18),
       accentForeground: fg,
       // Input
-      inputBackground: const Color(0xFF1C1C1E),
-      inputBorder: const Color(0xFF48484A),
+      inputBackground: const Color(0xFF141416),
+      inputBorder: const Color(0xFF37373F),
       inputFocusBorder: accent,
       inputFocusBackground: accent.withValues(alpha: 0.08),
       // Dialog
-      dialogBackground: const Color(0xFF2C2C2E),
-      dialogBarrier: const Color(0x40000000),
+      dialogBackground: const Color(0xFF232329),
+      dialogBarrier: const Color(0x50000000),
       // Switch
-      switchTrack: const Color(0xFF636366),
+      switchTrack: const Color(0xFF50505A),
       switchThumb: const Color(0xFFFFFFFF),
       // Shadow
       shadow: const Color(0xFF000000),
@@ -215,7 +217,10 @@ class FluxThemeTokens {
     );
   }
 
-  /// 默认亮色主题（Indigo 主色，非模板蓝；背景暖白去「灰底白卡」扁平感）。
+  /// 默认亮色主题（Warm Paper 暖纸风；Indigo 主色，非模板蓝）。
+  ///
+  /// 表面阶：近白底 + 纯白面板，`surface2/3` 带一档暖灰让浮层/输入框有
+  /// 明确的「填进去」的感觉；边框收敛为冷中性（#E4E7EC）。
   static FluxThemeTokens defaultLight({
     Color accent = const Color(0xFF4F46E5),
   }) {
@@ -228,23 +233,23 @@ class FluxThemeTokens {
       name: 'Default Light',
       appearance: Brightness.light,
       // Surface
-      background: const Color(0xFFF8F9FA),
+      background: const Color(0xFFF6F7F9),
       surface1: const Color(0xFFFFFFFF),
-      surface2: const Color(0xFFF1F3F5),
-      surface3: const Color(0xFFE9ECEF),
+      surface2: const Color(0xFFF1F3F6),
+      surface3: const Color(0xFFE8EBF0),
       // Element
-      elementHover: const Color(0xFFF1F3F5),
-      elementSelected: accent.withValues(alpha: 0.10),
+      elementHover: const Color(0xFFF1F3F6),
+      elementSelected: accent.withValues(alpha: 0.08),
       elementActive: accent.withValues(alpha: 0.10),
       // Text
-      textPrimary: const Color(0xFF09090B),
-      textSecondary: const Color(0xFF71717A),
-      // 对比度修复：textMuted #A1A1AA 白底仅 2.56:1（10.5-12px 小字
-      // 不达标 AA 4.5:1）→ #75757F（4.55:1）。层级仍弱于 textSecondary。
-      textMuted: const Color(0xFF75757F),
-      textDisabled: const Color(0xFF75757F).withValues(alpha: 0.45),
+      textPrimary: const Color(0xFF0F1115),
+      textSecondary: const Color(0xFF52525B),
+      // 对比度：textMuted #6E6E78 白底 ≈5.1:1（≥AA 4.5:1），层级弱于
+      // textSecondary（#52525B ≈7.8:1），主次分明且均达标。
+      textMuted: const Color(0xFF6E6E78),
+      textDisabled: const Color(0xFF6E6E78).withValues(alpha: 0.45),
       // Border
-      border: const Color(0xFFE4E4E7),
+      border: const Color(0xFFE4E7EC),
       borderFocused: accent,
       // Accent
       accent: accent,
@@ -255,7 +260,7 @@ class FluxThemeTokens {
       // 同为白就只剩一圈细边框，层次感尽失）。经 app_theme 接入 ShadTheme
       // 的 input/select decoration，全局生效。
       inputBackground: const Color(0xFFF2F4F7),
-      inputBorder: const Color(0xFFE4E4E7),
+      inputBorder: const Color(0xFFE4E7EC),
       inputFocusBorder: accent,
       inputFocusBackground: const Color(0xFFFFFFFF),
       // Dialog
@@ -267,8 +272,7 @@ class FluxThemeTokens {
       // Shadow
       shadow: const Color(0xFF000000),
       // Status——图标/色块对比度 ≥3:1（WCAG 1.4.11）：
-      // success #22C55E 2.28:1 → #16A34A 3.30:1；warning #F59E0B 2.15:1 →
-      // #D97706 3.19:1；error #EF4444 3.76:1 → #DC2626 4.83:1。
+      // success #16A34A ≈3.6:1；warning #D97706 ≈3.3:1；error #DC2626 ≈4.8:1。
       statusSuccess: const Color(0xFF16A34A),
       statusWarning: const Color(0xFFD97706),
       statusError: const Color(0xFFDC2626),

@@ -112,7 +112,11 @@ class _SidebarState extends State<Sidebar> {
   Widget build(BuildContext context) {
     final c = AppColors.of(context);
     return Container(
-      color: c.surface1,
+      // 右侧 1px 发丝线：把侧栏与内容区在视觉上「浮」出来，替代旧的全平拼接。
+      decoration: BoxDecoration(
+        color: c.surface1,
+        border: Border(right: BorderSide(color: c.border, width: 1)),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -740,14 +744,14 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 5),
       child: Text(
-        title,
+        title.toUpperCase(),
         style: TextStyle(
-          fontSize: 10.5,
-          fontWeight: FontWeight.w500,
+          fontSize: 9.5,
+          fontWeight: FontWeight.w600,
           color: c.textMuted,
-          letterSpacing: 0.5,
+          letterSpacing: 0.9,
         ),
       ),
     );
@@ -786,27 +790,34 @@ class _CollapsibleSectionHeaderState extends State<_CollapsibleSectionHeader> {
       onExit: (_) => setState(() => _isHovered = false),
       child: GestureDetector(
         onTap: widget.onToggle,
-        child: Container(
-          color: Colors.transparent,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          curve: Curves.easeOut,
+          color: _isHovered
+              ? c.hoverBg.withValues(alpha: 0.55)
+              : Colors.transparent,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
           child: Row(
             children: [
               Text(
-                widget.title,
+                widget.title.toUpperCase(),
                 style: TextStyle(
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w500,
+                  fontSize: 9.5,
+                  fontWeight: FontWeight.w600,
                   color: _isHovered ? c.textSecondary : c.textMuted,
-                  letterSpacing: 0.5,
+                  letterSpacing: 0.9,
                 ),
               ),
               const Spacer(),
-              Icon(
-                widget.expanded
-                    ? LucideIcons.chevronDown
-                    : LucideIcons.chevronRight,
-                size: 11,
-                color: _isHovered ? c.textSecondary : c.textMuted,
+              AnimatedRotation(
+                turns: widget.expanded ? 0.5 : 0,
+                duration: const Duration(milliseconds: 150),
+                curve: Curves.easeOut,
+                child: Icon(
+                  LucideIcons.chevronDown,
+                  size: 11,
+                  color: _isHovered ? c.textSecondary : c.textMuted,
+                ),
               ),
               if (widget.trailing != null) ...[
                 const SizedBox(width: 4),
@@ -892,9 +903,11 @@ class _NavItemState extends State<_NavItem> {
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
         onTap: widget.onTap,
-        child: Container(
-          height: 32,
-          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          curve: Curves.easeOut,
+          height: 34,
+          margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
           padding: const EdgeInsets.symmetric(horizontal: 8),
           decoration: BoxDecoration(
             color: selected
@@ -904,41 +917,65 @@ class _NavItemState extends State<_NavItem> {
                 : Colors.transparent,
             borderRadius: m.brMd,
           ),
-          child: Row(
+          child: Stack(
             children: [
-              // 活跃下载点 or 图标
-              Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Icon(
-                    widget.icon,
-                    size: 14,
-                    color: selected ? c.accent : c.textSecondary,
+              // 选中态左侧 accent 指示条（Positioned 覆盖，选中/未选中不位移）
+              if (selected)
+                Positioned(
+                  left: 0,
+                  top: 9,
+                  bottom: 9,
+                  width: 2.5,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: c.accent,
+                      borderRadius: m.brProgress,
+                    ),
                   ),
-                  if (statusDot != null)
-                    Positioned(top: -2, right: -3, child: statusDot),
+                ),
+              Row(
+                children: [
+                  // 活跃下载点 or 图标
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Icon(
+                        widget.icon,
+                        size: 14,
+                        color: selected ? c.accent : c.textSecondary,
+                      ),
+                      if (statusDot != null)
+                        Positioned(top: -2, right: -3, child: statusDot),
+                    ],
+                  ),
+                  const SizedBox(width: 9),
+                  Expanded(
+                    child: Text(
+                      widget.label,
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        color: selected ? c.accent : c.textSecondary,
+                        fontWeight: selected
+                            ? FontWeight.w600
+                            : FontWeight.normal,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (widget.count != null && widget.count > 0) ...[
+                    const SizedBox(width: 8),
+                    Text(
+                      widget.count.toString(),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: selected ? c.accent : c.textMuted,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                  ],
                 ],
               ),
-              const SizedBox(width: 8),
-              Text(
-                widget.label,
-                style: TextStyle(
-                  fontSize: 12.5,
-                  color: selected ? c.accent : c.textSecondary,
-                  fontWeight: selected ? FontWeight.w500 : FontWeight.normal,
-                ),
-              ),
-              if (widget.count != null) ...[
-                const Spacer(),
-                Text(
-                  widget.count.toString(),
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: selected ? c.accent : c.textMuted,
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                  ),
-                ),
-              ],
             ],
           ),
         ),
@@ -1040,9 +1077,11 @@ class _QueueNavItemState extends State<_QueueNavItem> {
       child: GestureDetector(
         onTap: widget.onTap,
         onSecondaryTapUp: (d) => _showContextMenu(context, d.globalPosition),
-        child: Container(
-          height: 32,
-          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          curve: Curves.easeOut,
+          height: 34,
+          margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
           padding: const EdgeInsets.symmetric(horizontal: 8),
           decoration: BoxDecoration(
             color: selected
@@ -1278,9 +1317,11 @@ class _RssNavItemState extends State<_RssNavItem> {
         child: Tooltip(
           message: unhealthy ? '$label\n${source.lastError}' : label,
           waitDuration: const Duration(milliseconds: 600),
-          child: Container(
-            height: 32,
-            margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 120),
+            curve: Curves.easeOut,
+            height: 34,
+            margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
             padding: const EdgeInsets.symmetric(horizontal: 8),
             decoration: BoxDecoration(
               color: selected
@@ -1791,8 +1832,8 @@ class _UpdateFooter extends StatelessWidget {
     final v = UpdateService.instance.currentVersion;
     final label = v == 'dev' ? 'dev' : 'v$v';
     return Container(
-      height: 28,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      height: 30,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
       decoration: BoxDecoration(
         border: Border(top: BorderSide(color: c.border, width: 1)),
       ),
@@ -1800,7 +1841,12 @@ class _UpdateFooter extends StatelessWidget {
         children: [
           Text(
             label,
-            style: TextStyle(fontSize: 10.5, color: c.textMuted),
+            style: TextStyle(
+              fontSize: 10.5,
+              color: c.textMuted,
+              fontWeight: FontWeight.w500,
+              letterSpacing: 0.2,
+            ),
           ),
         ],
       ),
