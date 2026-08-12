@@ -193,7 +193,8 @@ void _applyThemeSelection(
   }
 }
 
-/// 装配契约「同步键目录 v1」的全部 51 个键。顺序与契约文档一致，便于对照审阅。
+/// 装配契约「同步键目录 v1」的全部 49 个键（3ac92a7 移除自动升级后由 51 减至 49）。
+/// 顺序与契约文档一致，便于对照审阅。
 List<SyncEntry> buildSyncCatalog({
   required SettingsProvider settings,
   required ThemeProvider theme,
@@ -278,7 +279,7 @@ List<SyncEntry> buildSyncCatalog({
     },
   ),
 
-  // ── general（6）──
+  // ── general（4；update_channel/auto_check_update 随自动升级功能于 3ac92a7 移除）──
   SyncEntry(
     key: 'general.locale',
     read: () => locale.preference,

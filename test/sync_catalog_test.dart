@@ -130,10 +130,12 @@ void main() {
       settings.dispose();
     });
 
-    test('has exactly the 51 keys listed in the sync contract v1', () {
-      // 5 appearance + 6 general + 8 ui + 15 download + 12 bt（5 + 7 做种） + 5 ed2k.
+    test('has exactly the 49 keys listed in the sync contract v1', () {
+      // 5 appearance + 4 general + 8 ui + 15 download + 12 bt（5 + 7 做种） + 5 ed2k.
       // 做种 7 项：ratio/post_ratio/time/inactive_time/operator/then_action/max_active.
-      expect(catalog.length, 51);
+      // 注：3ac92a7 移除自动升级功能时删了 general.update_channel 与
+      // general.auto_check_update（51 → 49）；键目录以 sync_catalog.dart 为准。
+      expect(catalog.length, 49);
     });
 
     test('every key matches the contract key pattern and length limit', () {
