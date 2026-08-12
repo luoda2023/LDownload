@@ -642,6 +642,19 @@ async fn finalize_start_file_name(
             .await;
     }
 
+    // 流协议（MMS/RTSP/RTMP）：probe 后仍空名时用 URL 末段兜底（无扩展名
+    // 补 .mp4，见 stream_downloader::stream_file_name_from_url）。流协议没有
+    // HEAD 语义，文件名只能来自 URL；meta_prober 已尽力，此处是最终兜底，
+    // 保证空名流任务同样纳入 dedup + 预订协调（否则两个同源流任务会塌缩
+    // 到同一文件互相覆盖）。
+    if params.file_name.is_empty() && crate::stream_downloader::is_stream_url(&params.url) {
+        params.file_name = crate::stream_downloader::stream_file_name_from_url(&params.url);
+        let _ = params
+            .db
+            .update_task_file_name(&params.task_id, &params.file_name)
+            .await;
+    }
+
     // Step 4: dedup + 预订（临界区，锁内无 .await）。
     if params.file_name.is_empty() {
         return None;
@@ -3491,6 +3504,7 @@ impl DownloadManager {
                 && task.auto_route.starts_with("proxy")
                 && !is_bt_url(&task.url)
                 && !crate::ed2k::link::is_ed2k_url(&task.url)
+                && !crate::stream_downloader::is_stream_url(&task.url)
                 && crate::auto_proxy::is_connect_class_error(&task.error_message)
                 // 整机断网时所有代理路由任务都会报连接类错误，与代理无关
                 // ——有默认路由才认定「代理死了」，否则保留先验等网络恢复。
@@ -3569,6 +3583,7 @@ impl DownloadManager {
                         && !task.auto_route.starts_with("proxy")
                         && !is_bt_url(&task.url)
                         && !crate::ed2k::link::is_ed2k_url(&task.url)
+                        && !crate::stream_downloader::is_stream_url(&task.url)
                         && crate::auto_proxy::is_connect_class_error(&task.error_message)
                         && crate::auto_proxy::resolve_candidate(&self.proxy_config).is_some()
                         && let Some(host) = crate::segment_coordinator::extract_host(&task.url)
@@ -5051,6 +5066,8 @@ impl DownloadManager {
         let use_dash = dash_downloader::is_dash_url(&url) || audio_url.is_some();
         let use_bt = is_magnet(&url) || !torrent_file_bytes.is_empty() || is_torrent_file_url(&url);
         let use_ed2k = crate::ed2k::link::is_ed2k_url(&url);
+        // MMS/RTSP/RTMP 流协议（经受管 ffmpeg 录制，见 stream_downloader）。
+        let use_stream = crate::stream_downloader::is_stream_url(&url);
 
         // Insert a placeholder entry now so capacity/queue checks are correct
         // for any reentrant calls that may occur during BT session init below.
@@ -5323,6 +5340,10 @@ impl DownloadManager {
                         .await
                 } else if use_ed2k {
                     std::panic::AssertUnwindSafe(crate::ed2k::run_ed2k_download(params))
+                        .catch_unwind()
+                        .await
+                } else if use_stream {
+                    std::panic::AssertUnwindSafe(crate::stream_downloader::run_stream_download(params))
                         .catch_unwind()
                         .await
                 } else {
@@ -5956,6 +5977,8 @@ impl DownloadManager {
         let use_dash = dash_downloader::is_dash_url(&task.url) || audio_url.is_some();
         let use_bt = is_bt_url(&task.url);
         let use_ed2k = crate::ed2k::link::is_ed2k_url(&task.url);
+        // MMS/RTSP/RTMP 流协议（resume 语义 = 重新录制覆盖旧文件，见 stream_downloader）。
+        let use_stream = crate::stream_downloader::is_stream_url(&task.url);
 
         // Insert placeholder entry (handle filled in after tokio::spawn).
         self.active_tasks.insert(
@@ -6331,6 +6354,10 @@ impl DownloadManager {
                         .await
                 } else if use_ed2k {
                     std::panic::AssertUnwindSafe(crate::ed2k::run_ed2k_download(params))
+                        .catch_unwind()
+                        .await
+                } else if use_stream {
+                    std::panic::AssertUnwindSafe(crate::stream_downloader::run_stream_download(params))
                         .catch_unwind()
                         .await
                 } else {

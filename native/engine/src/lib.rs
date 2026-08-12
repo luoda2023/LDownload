@@ -46,6 +46,8 @@ pub mod selection;
 /// 站点 HTTP Basic 认证凭据（per-host 保存 + 建任务时自动套用）。
 pub mod site_auth;
 pub mod speed_limiter;
+/// MMS / RTSP / RTMP 流媒体录制下载（经受管 ffmpeg，零新依赖）。
+pub mod stream_downloader;
 pub mod tracker_subscription;
 /// 用户主目录下的系统标准目录（下载目录：Windows 已知文件夹 / XDG user-dirs）。
 pub mod user_dirs;

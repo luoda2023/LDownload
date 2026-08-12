@@ -72,6 +72,17 @@ pub async fn probe_task_meta(
         return probe_ftp_meta(url, file_name, proxy_config).await;
     }
 
+    // MMS / RTSP / RTMP 流协议 — 无 HTTP HEAD 语义，仅从 URL 尾段取文件名
+    //（大小未知）。与 magnet/ed2k 一样跳过网络探测。
+    if crate::stream_downloader::is_stream_url(url) {
+        let name = if file_name.is_empty() {
+            crate::stream_downloader::stream_file_name_from_url(url)
+        } else {
+            String::new()
+        };
+        return (name, 0);
+    }
+
     // HTTP / HTTPS
     probe_http_meta(url, file_name, client, spec).await
 }
