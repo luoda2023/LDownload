@@ -651,7 +651,7 @@ class _SettingsPageState extends State<SettingsPage> {
         // 顶部标题栏
         TitleDragArea(
           child: Container(
-            height: 40,
+            height: AppMetrics.headerBarHeight,
             decoration: BoxDecoration(
               color: c.surface1,
               border: Border(bottom: BorderSide(color: c.border, width: 1)),

@@ -828,7 +828,7 @@ class _HomePageState extends State<HomePage> {
           width: _detailWidth,
           child: Column(
             children: [
-              const SizedBox(height: 40),
+              SizedBox(height: AppMetrics.headerBarHeight),
               Expanded(
                 child: _buildDetailPanel(isBottom: false),
               ),
@@ -854,7 +854,7 @@ class _HomePageState extends State<HomePage> {
       color: c.surface1,
       child: Column(
         children: [
-          const SizedBox(height: 40),
+          SizedBox(height: AppMetrics.headerBarHeight),
           TaskTabBar(controller: _controller),
           ListenableBuilder(
             listenable: _controller,
@@ -953,7 +953,7 @@ class _HomePageState extends State<HomePage> {
             top: 0,
             left: 0,
             right: 0,
-            height: 40,
+            height: AppMetrics.headerBarHeight,
             child: TitleDragArea(child: ColoredBox(color: c.surface1)),
           ),
           ColoredBox(
@@ -1020,7 +1020,7 @@ class _HomePageState extends State<HomePage> {
               top: 0,
               left: 0,
               right: 0,
-              height: 40,
+              height: AppMetrics.headerBarHeight,
               child: TitleDragArea(child: ColoredBox(color: c.surface1)),
             ),
             // 内容区 — 全部从 titlebar 下方开始
@@ -1050,7 +1050,7 @@ class _HomePageState extends State<HomePage> {
               top: 0,
               left: _sidebarVisible ? _sidebarWidth + 1 : 0,
               right: 0,
-              height: 40,
+              height: AppMetrics.headerBarHeight,
               child: HeaderBar(
                 key: _headerBarKey,
                 controller: _controller,

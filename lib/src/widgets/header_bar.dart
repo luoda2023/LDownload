@@ -259,7 +259,7 @@ class HeaderBarState extends State<HeaderBar> {
     final s = LocaleScope.of(context);
     return TitleDragArea(
       child: Container(
-        height: 40,
+        height: AppMetrics.headerBarHeight,
         padding: const EdgeInsets.only(left: 16),
         decoration: BoxDecoration(
           color: c.surface1,
@@ -656,7 +656,7 @@ class WindowControls extends StatelessWidget {
 
   Widget _buildToolButtons(BuildContext context) {
     return SizedBox(
-      height: 40,
+      height: AppMetrics.headerBarHeight,
       child: _TitlebarToolButtons(
         controller: controller,
         onSettings: onSettings,
@@ -668,7 +668,7 @@ class WindowControls extends StatelessWidget {
   Widget _buildWindowsControls(BuildContext context) {
     final c = AppColors.of(context);
     return SizedBox(
-      height: 40,
+      height: AppMetrics.headerBarHeight,
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -749,7 +749,7 @@ class _WindowButtonState extends State<_WindowButton> {
         onTap: widget.onPressed,
         child: Container(
           width: 40,
-          height: 40,
+          height: AppMetrics.headerBarHeight,
           color: _isHovered
               ? (widget.isClose
                 // 刻意保留：关闭按钮悬停危险态近不透明红底（Windows 标准），一次性字面量。
@@ -962,7 +962,7 @@ class _ToolButtonState extends State<_ToolButton> {
         onSecondaryTapUp: widget.onSecondaryTapUp,
         child: Container(
           width: 40,
-          height: 40,
+          height: AppMetrics.headerBarHeight,
           decoration: BoxDecoration(
             color: isActive
                 ? c.accentBg
