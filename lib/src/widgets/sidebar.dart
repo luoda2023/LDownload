@@ -179,8 +179,9 @@ class _SidebarState extends State<Sidebar> {
     }
     return DragToMoveArea(
       child: Container(
-        height: 40,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        height: 48,
+        // 向右下方偏移：左内边距 20（原 16 右移）、顶部 8 / 底部 4（内容下移）
+        padding: const EdgeInsets.fromLTRB(20, 8, 16, 4),
         child: Row(
           children: [
             // 跟随「设置-外观-应用图标」切换：内置闪电/自定义图标启用时显示其预览
@@ -194,8 +195,8 @@ class _SidebarState extends State<Sidebar> {
                     borderRadius: m.brMd,
                     child: Image.asset(
                       AppIconService.builtinBoltAsset,
-                      width: 22,
-                      height: 22,
+                      width: 26,
+                      height: 26,
                       filterQuality: FilterQuality.medium,
                     ),
                   );
@@ -207,8 +208,8 @@ class _SidebarState extends State<Sidebar> {
                     child: Image(
                       key: ValueKey(svc.previewRevision),
                       image: FileImage(File(customPreview)),
-                      width: 22,
-                      height: 22,
+                      width: 26,
+                      height: 26,
                       filterQuality: FilterQuality.medium,
                       gaplessPlayback: true,
                     ),
@@ -219,8 +220,8 @@ class _SidebarState extends State<Sidebar> {
                 if (c.tokens.appearance == Brightness.dark) {
                   return Image.asset(
                     'assets/logo/logo_on_dark.png',
-                    width: 22,
-                    height: 22,
+                    width: 26,
+                    height: 26,
                     filterQuality: FilterQuality.medium,
                   );
                 }
@@ -228,21 +229,21 @@ class _SidebarState extends State<Sidebar> {
                   borderRadius: m.brMd,
                   child: Image.asset(
                     'assets/logo/ldownload_logo.png',
-                    width: 22,
-                    height: 22,
+                    width: 26,
+                    height: 26,
                     filterQuality: FilterQuality.medium,
                   ),
                 );
               },
             ),
-            const SizedBox(width: 9),
+            const SizedBox(width: 10),
             Text.rich(
               TextSpan(
                 children: [
                   TextSpan(
                     text: 'L',
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: 15,
                       fontWeight: FontWeight.w600,
                       color: c.accent,
                       letterSpacing: 0.3,
@@ -251,7 +252,7 @@ class _SidebarState extends State<Sidebar> {
                   TextSpan(
                     text: 'Download',
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: 15,
                       fontWeight: FontWeight.w500,
                       color: c.textPrimary,
                       letterSpacing: 0.3,
