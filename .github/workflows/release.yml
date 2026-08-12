@@ -1525,6 +1525,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Normalize line endings (defense against CRLF)
+        run: |
+          # Windows 编辑可能引入 CRLF，会让 #!/bin/sh 变成 #!/bin/sh\r，内核找不到
+          # 解释器而报 "cannot execute: required file not found" / exit 127。这里把
+          # packaging/ 下文本文件统一清洗为 LF，确保脚本与 NAS 侧载荷（init/启动脚本）
+          # 在 runner 与 NAS 上都能正确执行。
+          find packaging -type f \( -name '*.sh' -o -name '*.cfg' -o -name '*.conf' \
+            -o -name '*.json' -o -name '*.js' -o -name '*.config' -o -name '*.init' \
+            -o -name 'package_routines' -o -name 'start-stop-status' -o -name 'ldownload.sh' \) \
+            -exec sed -i 's/\r$//' {} +
+
       - name: Get version from tag
         id: version
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
