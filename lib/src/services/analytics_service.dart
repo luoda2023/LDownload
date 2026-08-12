@@ -133,7 +133,6 @@ class AnalyticsService {
           'props': {
             'edition': 'desktop',
             'autoStartup': settings.autoStartup,
-            'updateChannel': settings.updateChannel,
             'appLanguage': currentLocale,
             'extensionConnected':
                 KvStore.instance.getBool(_kExtConnected) ?? false,

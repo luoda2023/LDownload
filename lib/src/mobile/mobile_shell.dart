@@ -1,17 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/widgets.dart';
-import 'package:shadcn_ui/shadcn_ui.dart' show LucideIcons;
 
 import '../bindings/bindings.dart';
 import '../i18n/locale_provider.dart';
 import '../models/download_controller.dart';
 import '../models/settings_provider.dart';
-import '../theme/app_colors.dart';
 import '../theme/app_metrics.dart';
 import '../theme/theme_provider.dart';
-import '../services/kv_store.dart';
-import '../services/update_service.dart';
 import 'screens/mobile_settings_screen.dart';
 import 'services/mobile_storage_service.dart';
 import 'screens/mobile_tasks_screen.dart';
@@ -45,17 +41,6 @@ class _MobileShellState extends State<MobileShell> with WidgetsBindingObserver {
   bool _downloadSheetOpen = false;
   final _shareAppendCtrl = StreamController<String>.broadcast();
 
-  /// 自动更新检查只触发一次（等配置加载完成后）。
-  bool _updateCheckScheduled = false;
-
-  /// 更新提示弹层只弹一次；用户点了"立即更新"后进入自动流程，
-  /// 下载完成时直接唤起安装。
-  bool _updatePromptShown = false;
-  bool _updateFlowAccepted = false;
-
-  /// KvStore key：用户选择"跳过此版本"时记录的版本号。
-  static const _prefKeySkippedVersion = 'update_skipped_version';
-
   @override
   void initState() {
     super.initState();
@@ -64,107 +49,6 @@ class _MobileShellState extends State<MobileShell> with WidgetsBindingObserver {
     _ensureAndroidSaveDir();
     // 系统分享 / URL scheme 接入：收到链接切到下载页并弹新建下载弹层
     ShareIntentService.init(_onShared);
-    // 启动自动检查更新：等配置加载完成后按 autoCheckUpdate 决定
-    _settings.addListener(_maybeScheduleUpdateCheck);
-    UpdateService.instance.addListener(_onUpdateChanged);
-    _maybeScheduleUpdateCheck();
-  }
-
-  /// 配置加载完成且开启了自动检查 → 延迟数秒触发一次版本检查
-  /// （避开启动高峰，与桌面端 5s 静默检查策略一致）。
-  void _maybeScheduleUpdateCheck() {
-    if (_updateCheckScheduled || !_settings.loaded) return;
-    _updateCheckScheduled = true;
-    _settings.removeListener(_maybeScheduleUpdateCheck);
-    if (!_settings.autoCheckUpdate) return;
-    Future.delayed(const Duration(seconds: 5), () {
-      if (mounted) UpdateService.instance.checkForUpdate();
-    });
-  }
-
-  /// UpdateService 状态驱动：发现新版本弹提示层；
-  /// 用户接受更新后，下载完成自动唤起安装器。
-  void _onUpdateChanged() {
-    final svc = UpdateService.instance;
-    switch (svc.status) {
-      case UpdateStatus.available:
-        _maybePromptUpdate(svc);
-      case UpdateStatus.readyToInstall:
-        if (_updateFlowAccepted) {
-          _updateFlowAccepted = false;
-          svc.installUpdate();
-        }
-      default:
-        break;
-    }
-  }
-
-  Future<void> _maybePromptUpdate(UpdateService svc) async {
-    if (_updatePromptShown || _sheetOpen || !mounted) return;
-    final result = svc.checkResult;
-    if (result == null || !result.hasUpdate) return;
-    final version = result.latestVersion;
-    // 用户此前选择过"跳过此版本"→ 不再提示
-    if (KvStore.instance.getString(_prefKeySkippedVersion) == version) return;
-    _updatePromptShown = true;
-
-    final s = widget.localeNotifier.s;
-    _sheetOpen = true;
-    try {
-      final choice = await showMobileSheet<_UpdateChoice>(
-        context,
-        builder: (ctx) {
-          final c = AppColors.of(ctx);
-          return MobileSheetContainer(
-            title: s.newVersionFound(version),
-            footer: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                MobilePrimaryButton(
-                  icon: LucideIcons.download,
-                  label: s.updateNow,
-                  filled: true,
-                  onTap: () => Navigator.of(ctx).pop(_UpdateChoice.update),
-                ),
-                const SizedBox(height: 10),
-                MobilePrimaryButton(
-                  label: s.updateLater,
-                  filled: false,
-                  onTap: () => Navigator.of(ctx).pop(_UpdateChoice.later),
-                ),
-                const SizedBox(height: 10),
-                MobilePrimaryButton(
-                  label: s.skipThisVersion,
-                  filled: false,
-                  onTap: () => Navigator.of(ctx).pop(_UpdateChoice.skip),
-                ),
-              ],
-            ),
-            child: Padding(
-              padding: const EdgeInsets.only(top: 2, bottom: 4),
-              child: Text(
-                s.updatePromptBody(
-                  version,
-                  UpdateService.formatBytes(result.fileSize),
-                ),
-                style: TextStyle(fontSize: 13, height: 1.5, color: c.textMuted),
-              ),
-            ),
-          );
-        },
-      );
-      switch (choice) {
-        case _UpdateChoice.update:
-          _updateFlowAccepted = true;
-          svc.downloadUpdate();
-        case _UpdateChoice.skip:
-          await KvStore.instance.setString(_prefKeySkippedVersion, version);
-        case _UpdateChoice.later || null:
-          break; // 划走 / 点遮罩 / 稍后：本次会话不再提示
-      }
-    } finally {
-      _sheetOpen = false;
-    }
   }
 
   /// 收到系统分享 / URL scheme 唤起的链接：切到下载页，弹新建下载弹层
@@ -215,8 +99,6 @@ class _MobileShellState extends State<MobileShell> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     ShareIntentService.shutdown();
     _shareAppendCtrl.close();
-    _settings.removeListener(_maybeScheduleUpdateCheck);
-    UpdateService.instance.removeListener(_onUpdateChanged);
     _controller.dispose();
     _settings.dispose();
     super.dispose();
@@ -315,5 +197,3 @@ class _AmbientGlow extends StatelessWidget {
   }
 }
 
-/// 更新提示弹层的用户选择
-enum _UpdateChoice { update, later, skip }

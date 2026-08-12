@@ -37,8 +37,6 @@ class SettingsProvider extends ChangeNotifier {
   bool _closeToTray = true; // 默认关闭到托盘
   bool _startMinimizedToTray = false; // 默认启动时显示主窗口
   bool _autoStartup = false; // 默认不开机启动
-  bool _autoCheckUpdate = true; // 默认启动时自动检查更新
-  String _updateChannel = 'stable'; // 更新渠道：stable 稳定版 / frontier 预览版（含预发布）
   bool _notifyOnComplete = true; // 默认任务完成时弹出通知
   bool _silentDownloadEnabled = false; // 免打扰下载：外部请求不弹确认框直接下载
   bool _silentSkipSelection = false; // 免打扰子开关：跳过 BT/HLS/变体二次选择弹窗
@@ -63,10 +61,6 @@ class SettingsProvider extends ChangeNotifier {
   bool _showSidebarCategory = true; // 显示分类区块
   bool _showSidebarRss = true; // 显示 RSS 订阅区块
 
-  // 侧边栏设备协同区显示（三态渐进披露）：
-  // null=自动（有远程设备才显示）/ true=强制显示 / false=强制隐藏
-  bool? _showSidebarDevice;
-
   // 标题栏工具按钮显示设置
   bool _showTitlebarPauseAll = true; // 全部暂停按钮
   bool _showTitlebarResumeAll = true; // 全部恢复按钮
@@ -77,7 +71,6 @@ class SettingsProvider extends ChangeNotifier {
   bool _sidebarQueuesExpanded = true; // 队列区块展开
   bool _sidebarCategoryExpanded = false; // 分类区块展开（默认折叠）
   bool _sidebarRssExpanded = true; // RSS 区块展开
-  bool _sidebarDeviceExpanded = true; // 设备区块展开
 
   // 自定义分类
   List<CustomCategory> _customCategories = [];
@@ -274,8 +267,6 @@ class SettingsProvider extends ChangeNotifier {
   bool get closeToTray => _closeToTray;
   bool get startMinimizedToTray => _startMinimizedToTray;
   bool get autoStartup => _autoStartup;
-  bool get autoCheckUpdate => _autoCheckUpdate;
-  String get updateChannel => _updateChannel;
   bool get notifyOnComplete => _notifyOnComplete;
   bool get silentDownloadEnabled => _silentDownloadEnabled;
   bool get silentSkipSelection => _silentSkipSelection;
@@ -300,14 +291,6 @@ class SettingsProvider extends ChangeNotifier {
   bool get showSidebarCategory => _showSidebarCategory;
   bool get showSidebarRss => _showSidebarRss;
 
-  /// 设备协同区显示覆盖（null=自动 / true=强制显示 / false=强制隐藏）。
-  bool? get showSidebarDeviceOverride => _showSidebarDevice;
-
-  /// 设备协同区最终是否显示：override 优先，未设置时跟随是否存在任意
-  /// 设备（云端远程设备或本地配对设备）。
-  bool showSidebarDeviceEffective(bool hasAnyDevice) =>
-      _showSidebarDevice ?? hasAnyDevice;
-
   // 标题栏工具按钮 Getters
   bool get showTitlebarPauseAll => _showTitlebarPauseAll;
   bool get showTitlebarResumeAll => _showTitlebarResumeAll;
@@ -317,7 +300,6 @@ class SettingsProvider extends ChangeNotifier {
   bool get sidebarQueuesExpanded => _sidebarQueuesExpanded;
   bool get sidebarCategoryExpanded => _sidebarCategoryExpanded;
   bool get sidebarRssExpanded => _sidebarRssExpanded;
-  bool get sidebarDeviceExpanded => _sidebarDeviceExpanded;
 
   // 自定义分类 Getter
   List<CustomCategory> get customCategories =>
@@ -642,21 +624,6 @@ class SettingsProvider extends ChangeNotifier {
     _saveToRust('start_minimized_to_tray', value.toString());
   }
 
-  void setAutoCheckUpdate(bool value) {
-    if (_autoCheckUpdate == value) return;
-    _autoCheckUpdate = value;
-    notifyListeners();
-    _saveToRust('auto_check_update', value.toString());
-  }
-
-  /// 设置更新渠道（'stable' 稳定版 / 'frontier' 预览版）。
-  void setUpdateChannel(String value) {
-    if (_updateChannel == value) return;
-    _updateChannel = value;
-    notifyListeners();
-    _saveToRust('update_channel', value);
-  }
-
   void setFloatingBallEnabled(bool value) {
     if (_floatingBallEnabled == value) return;
     _floatingBallEnabled = value;
@@ -787,14 +754,6 @@ class SettingsProvider extends ChangeNotifier {
     _saveToRust('show_sidebar_rss', value.toString());
   }
 
-  /// 设置设备协同区显示覆盖（true=强制显示 / false=强制隐藏，右键隐藏与设置开关共用）。
-  void setShowSidebarDevice(bool value) {
-    if (_showSidebarDevice == value) return;
-    _showSidebarDevice = value;
-    notifyListeners();
-    _saveToRust('show_sidebar_device', value.toString());
-  }
-
   // 标题栏工具按钮 Setters
 
   void setShowTitlebarPauseAll(bool value) {
@@ -837,13 +796,6 @@ class SettingsProvider extends ChangeNotifier {
     _sidebarRssExpanded = value;
     notifyListeners();
     _saveToRust('sidebar_rss_expanded', value.toString());
-  }
-
-  void setSidebarDeviceExpanded(bool value) {
-    if (_sidebarDeviceExpanded == value) return;
-    _sidebarDeviceExpanded = value;
-    notifyListeners();
-    _saveToRust('sidebar_device_expanded', value.toString());
   }
 
   void setSidebarCategoryExpanded(bool value) {
@@ -1878,12 +1830,8 @@ class SettingsProvider extends ChangeNotifier {
           _startMinimizedToTray = entry.value == 'true';
         case 'auto_startup':
           _autoStartup = entry.value == 'true';
-        case 'auto_check_update':
-          _autoCheckUpdate = entry.value == 'true';
         case 'analytics_enabled':
           _analyticsEnabled = entry.value == 'true';
-        case 'update_channel':
-          _updateChannel = entry.value.isEmpty ? 'stable' : entry.value;
         case 'bt_enable_dht':
           _btEnableDht = entry.value == 'true';
         case 'bt_enable_upnp':
@@ -2074,12 +2022,6 @@ class SettingsProvider extends ChangeNotifier {
           _showSidebarCategory = entry.value != 'false';
         case 'show_sidebar_rss':
           _showSidebarRss = entry.value != 'false';
-        case 'show_sidebar_device':
-          _showSidebarDevice = entry.value == 'true'
-              ? true
-              : entry.value == 'false'
-              ? false
-              : null;
         case 'show_titlebar_pause_all':
           _showTitlebarPauseAll = entry.value != 'false';
         case 'show_titlebar_resume_all':
@@ -2094,8 +2036,6 @@ class SettingsProvider extends ChangeNotifier {
           _sidebarCategoryExpanded = entry.value == 'true';
         case 'sidebar_rss_expanded':
           _sidebarRssExpanded = entry.value != 'false';
-        case 'sidebar_device_expanded':
-          _sidebarDeviceExpanded = entry.value != 'false';
         case 'custom_categories':
           _customCategories = CustomCategory.decodeList(entry.value);
         case 'program_category_migrated':

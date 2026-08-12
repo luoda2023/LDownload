@@ -537,124 +537,14 @@ class S {
   String get settingsCatApiServiceDesc => _r('settingsCatApiServiceDesc');
   String get settingsCatAbout => _r('settingsCatAbout');
   String get settingsCatAboutDesc => _r('settingsCatAboutDesc');
-  String get settingsCatAccount => _r('settingsCatAccount');
-  String get settingsCatAccountDesc => _r('settingsCatAccountDesc');
-
-  // 账户 —— FluxCloud 登录/注册/设备管理
-  String get accountHeroSubtitle => _r('accountHeroSubtitle');
-  String get accountLogin => _r('accountLogin');
-  String get accountLogout => _r('accountLogout');
-  String get accountRegister => _r('accountRegister');
-  String get accountOriginIdCopied => _r('accountOriginIdCopied');
-  String get accountSecurityGroup => _r('accountSecurityGroup');
-  String get accountSecurityGroupDesc => _r('accountSecurityGroupDesc');
-  String get accountGroupCloudFeatures => _r('accountGroupCloudFeatures');
-  String get accountCloudFeaturesDesc => _r('accountCloudFeaturesDesc');
-  String get accountComingSoon => _r('accountComingSoon');
-  String get accountFeatureConfigSync => _r('accountFeatureConfigSync');
-  String get accountFeatureConfigSyncDesc => _r('accountFeatureConfigSyncDesc');
-  String get accountFeatureMultiDevice => _r('accountFeatureMultiDevice');
-  String get accountFeatureMultiDeviceDesc =>
-      _r('accountFeatureMultiDeviceDesc');
-  String get accountLoginDialogTitle => _r('accountLoginDialogTitle');
-  String get accountLoginTabCode => _r('accountLoginTabCode');
-  String get accountLoginTabPassword => _r('accountLoginTabPassword');
-  String get accountEmailPlaceholder => _r('accountEmailPlaceholder');
-  String get accountEmailChangeTitle => _r('accountEmailChangeTitle');
-  String accountEmailChangeOldSubtitle(String email) =>
-      _r('accountEmailChangeOldSubtitle', {'email': email});
-  String get accountEmailChangeOldCodePlaceholder =>
-      _r('accountEmailChangeOldCodePlaceholder');
-  String get accountEmailChangeOldCodeHint =>
-      _r('accountEmailChangeOldCodeHint');
-  String get accountEmailChangeSendNewCode =>
-      _r('accountEmailChangeSendNewCode');
-  String get accountEmailChangeNewPlaceholder =>
-      _r('accountEmailChangeNewPlaceholder');
-  String accountEmailChangeCodeSubtitle(String email) =>
-      _r('accountEmailChangeCodeSubtitle', {'email': email});
-  String get accountEmailChangeInvalid => _r('accountEmailChangeInvalid');
-  String get accountEmailChangeSame => _r('accountEmailChangeSame');
-  String get accountEmailChangeSuccess => _r('accountEmailChangeSuccess');
-  String get accountLoginAccountPlaceholder =>
-      _r('accountLoginAccountPlaceholder');
-  String get accountCodePlaceholder => _r('accountCodePlaceholder');
-  String get accountSendCode => _r('accountSendCode');
-  String get accountPasswordPlaceholder => _r('accountPasswordPlaceholder');
-  String get accountLoginTerms => _r('accountLoginTerms');
-  String get accountNoAccountYet => _r('accountNoAccountYet');
-  String get accountAlreadyHaveAccount => _r('accountAlreadyHaveAccount');
-  String get accountRegisterDialogTitle => _r('accountRegisterDialogTitle');
-  String get accountNicknamePlaceholder => _r('accountNicknamePlaceholder');
-  String get accountNicknameReroll => _r('accountNicknameReroll');
-  String get accountPasswordHint => _r('accountPasswordHint');
-  String get accountDeviceVerifyTitle => _r('accountDeviceVerifyTitle');
-  String accountDeviceVerifySubtitle(String email) =>
-      _r('accountDeviceVerifySubtitle', {'email': email});
-  String get accountDeviceVerifySubtitleGeneric =>
-      _r('accountDeviceVerifySubtitleGeneric');
-  String get accountRegisterVerifyTitle => _r('accountRegisterVerifyTitle');
-  String accountRegisterVerifySubtitle(String email) =>
-      _r('accountRegisterVerifySubtitle', {'email': email});
-  String accountCodeExpireIn(int seconds) =>
-      _r('accountCodeExpireIn', {'seconds': seconds});
-  String get accountResendCode => _r('accountResendCode');
-  String accountResendCodeIn(int seconds) =>
-      _r('accountResendCodeIn', {'seconds': seconds});
-  String get accountVerifySubmit => _r('accountVerifySubmit');
-  String get accountErrorInvalidCredentials =>
-      _r('accountErrorInvalidCredentials');
-  String get accountErrorInvalidCode => _r('accountErrorInvalidCode');
-  String get accountErrorRateLimited => _r('accountErrorRateLimited');
-  String get accountErrorEmailTaken => _r('accountErrorEmailTaken');
-  String get accountErrorAccountDisabled => _r('accountErrorAccountDisabled');
-  String get accountErrorRegistrationClosed =>
-      _r('accountErrorRegistrationClosed');
-  String get accountErrorRegistrationIncomplete =>
-      _r('accountErrorRegistrationIncomplete');
-  String get accountErrorValidation => _r('accountErrorValidation');
-  String get accountErrorNetwork => _r('accountErrorNetwork');
-  String get accountErrorUnknown => _r('accountErrorUnknown');
-  String get accountErrorDeviceLimit => _r('accountErrorDeviceLimit');
-  String get accountDeviceRenameTitle => _r('accountDeviceRenameTitle');
-  String get accountDeviceRenameInvalid => _r('accountDeviceRenameInvalid');
-  String get accountDeviceDeleteConfirmTitle =>
-      _r('accountDeviceDeleteConfirmTitle');
-  String get accountDeviceDeleteConfirmDesc =>
-      _r('accountDeviceDeleteConfirmDesc');
-  String get accountDeviceDeleteCurrentWarning =>
-      _r('accountDeviceDeleteCurrentWarning');
-  String get accountDeviceCurrent => _r('accountDeviceCurrent');
-  String get accountDevicesTitle => _r('accountDevicesTitle');
-  String get accountDevicesDesc => _r('accountDevicesDesc');
+  // 设备平台标签（跨设备配对 / 添加设备对话框共用，与账户登录无关）
   String get accountDevicesEmpty => _r('accountDevicesEmpty');
-  String get accountDevicesLoadFailed => _r('accountDevicesLoadFailed');
-  String get accountDevicesRetry => _r('accountDevicesRetry');
-  String accountDevicesManageAll(int count) =>
-      _r('accountDevicesManageAll', {'count': count});
-  String get accountDevicesManageAllTitle => _r('accountDevicesManageAllTitle');
-  String get accountDevicesSearchHint => _r('accountDevicesSearchHint');
-  String get accountDevicesSearchNoResults =>
-      _r('accountDevicesSearchNoResults');
-  String get accountDeviceDetailTitle => _r('accountDeviceDetailTitle');
-  String get accountDeviceFieldPlatform => _r('accountDeviceFieldPlatform');
-  String get accountDeviceFieldAppVersion => _r('accountDeviceFieldAppVersion');
-  String get accountDeviceFieldLastIp => _r('accountDeviceFieldLastIp');
-  String get accountDeviceFieldCreatedAt => _r('accountDeviceFieldCreatedAt');
-  String get accountDeviceFieldLastSeenAt => _r('accountDeviceFieldLastSeenAt');
-  String get accountDeviceFieldId => _r('accountDeviceFieldId');
-  String get accountDeviceDeleteAction => _r('accountDeviceDeleteAction');
   String get accountDevicePlatformWindows => _r('accountDevicePlatformWindows');
   String get accountDevicePlatformMacos => _r('accountDevicePlatformMacos');
   String get accountDevicePlatformLinux => _r('accountDevicePlatformLinux');
   String get accountDevicePlatformAndroid => _r('accountDevicePlatformAndroid');
   String get accountDevicePlatformIos => _r('accountDevicePlatformIos');
   String get accountDevicePlatformWeb => _r('accountDevicePlatformWeb');
-  String get accountServerAddress => _r('accountServerAddress');
-  String get accountServerAddressDesc => _r('accountServerAddressDesc');
-  String get accountServerAddressInvalid => _r('accountServerAddressInvalid');
-  String get accountServerAddressReset => _r('accountServerAddressReset');
-  String get accountServerAddressSaved => _r('accountServerAddressSaved');
 
   // 配置同步 —— FluxCloud 云端设置同步（见 local://sync-contract.md）
   String get cloudSyncTitle => _r('cloudSyncTitle');
@@ -762,8 +652,6 @@ class S {
   String get deviceOnline => _r('deviceOnline');
   String get deviceOffline => _r('deviceOffline');
   String get deviceLocalTag => _r('deviceLocalTag');
-  String get showSidebarDevice => _r('showSidebarDevice');
-  String get showSidebarDeviceDesc => _r('showSidebarDeviceDesc');
   String get downloadTo => _r('downloadTo');
   String get downloadToHint => _r('downloadToHint');
   String get multiDeviceTitle => _r('multiDeviceTitle');
@@ -1335,16 +1223,8 @@ class S {
   String get currentVersion => _r('currentVersion');
   String get latestVersion => _r('latestVersion');
   String get publishDate => _r('publishDate');
-  String get softwareUpdate => _r('softwareUpdate');
-  String get checkUpdateDesc => _r('checkUpdateDesc');
-  String get autoCheckUpdate => _r('autoCheckUpdate');
-  String get autoCheckUpdateDesc => _r('autoCheckUpdateDesc');
   String get analyticsEnabled => _r('analyticsEnabled');
   String get analyticsEnabledDesc => _r('analyticsEnabledDesc');
-  String get updateChannel => _r('updateChannel');
-  String get updateChannelDesc => _r('updateChannelDesc');
-  String get updateChannelStable => _r('updateChannelStable');
-  String get updateChannelFrontier => _r('updateChannelFrontier');
   String get donateTitle => _r('donateTitle');
   String donateDate(int y, int m, int d) => _r('donateDate', {
     'y': y,
@@ -1373,25 +1253,9 @@ class S {
   String get extensionFirefoxStore => _r('extensionFirefoxStore');
   String get extensionEdgeStore => _r('extensionEdgeStore');
   String get extensionOfflinePackages => _r('extensionOfflinePackages');
-  String get upToDate => _r('upToDate');
-  String newVersionFound(String v) => _r('newVersionFound', {'v': v});
-  String get updateNow => _r('updateNow');
-  String get updateLater => _r('updateLater');
-  String get skipThisVersion => _r('skipThisVersion');
-  String updatePromptBody(String v, String size) =>
-      _r('updatePromptBody', {'v': v, 'size': size});
   String get downloadComplete => _r('downloadComplete');
-  String get downloadingUpdate => _r('downloadingUpdate');
   String segmentsDownloading(int active, int total) =>
       _r('segmentsDownloading', {'active': active, 'total': total});
-  String get checking => _r('checking');
-  String get checkUpdate => _r('checkUpdate');
-  String downloadUpdate(String size) => _r('downloadUpdate', {'size': size});
-  String get recheck => _r('recheck');
-  String get updateFailedTitle => _r('updateFailedTitle');
-  String get updateFailedOpenSite => _r('updateFailedOpenSite');
-  String get updateFallbackToTask => _r('updateFallbackToTask');
-  String get updateFallbackTaskCreated => _r('updateFallbackTaskCreated');
   String get officialWebsite => _r('officialWebsite');
   String get visitWebsiteForMore => _r('visitWebsiteForMore');
 
@@ -1468,9 +1332,6 @@ class S {
   List<String> get searchKeywordsSpeedLimit =>
       _r('searchKeywordsSpeedLimit').split(',')
         ..addAll(['speed', 'limit', 'bandwidth']);
-  List<String> get searchKeywordsUpdate =>
-      _r('searchKeywordsUpdate').split(',')
-        ..addAll(['update', 'upgrade', 'version']);
   List<String> get searchKeywordsFileAssoc =>
       _r('searchKeywordsFileAssoc').split(',')
         ..addAll(['torrent', 'association', 'file']);
@@ -1587,7 +1448,6 @@ class S {
   String get menuView => _r('menuView');
   String get menuWindow => _r('menuWindow');
   String get menuHelp => _r('menuHelp');
-  String get menuCheckForUpdates => _r('menuCheckForUpdates');
   String get menuSettings => _r('menuSettings');
   String get menuWebsite => _r('menuWebsite');
   String get menuFeedback => _r('menuFeedback');

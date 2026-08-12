@@ -297,16 +297,6 @@ List<SyncEntry> buildSyncCatalog({
       locale.setLocale(value);
     },
   ),
-  _string(
-    'general.update_channel',
-    () => settings.updateChannel,
-    settings.setUpdateChannel,
-  ),
-  _bool(
-    'general.auto_check_update',
-    () => settings.autoCheckUpdate,
-    settings.setAutoCheckUpdate,
-  ),
   _bool(
     'general.clipboard_watch',
     () => settings.clipboardWatchEnabled,
