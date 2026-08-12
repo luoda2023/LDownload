@@ -16,8 +16,18 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # secrets 不能用于 step 级 if，映射为 job 级 env 供部署步骤判空跳过。
+    # 未配置 DEPLOY_HOST（如仓库刚迁移、官网服务器尚未接入）时整个 job 跳过，
+    # 避免 SSH action 因空主机名直接失败让 main 分支挂红。
+    env:
+      HAS_DEPLOY: ${{ secrets.DEPLOY_HOST != '' }}
     steps:
+      - name: 跳过提示（未配置部署密钥）
+        if: env.HAS_DEPLOY != 'true'
+        run: echo "::warning::DEPLOY_HOST 未配置 — 跳过官网自动部署（在仓库 Settings → Secrets 配置后生效）"
+
       - name: SSH 部署
+        if: env.HAS_DEPLOY == 'true'
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.DEPLOY_HOST }}

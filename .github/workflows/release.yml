@@ -1313,6 +1313,8 @@ jobs:
             runner: macos-latest
             target: aarch64-apple-darwin
     runs-on: ${{ matrix.runner }}
+    env:
+      HAS_SIGNPATH: ${{ secrets.SIGNPATH_API_TOKEN != '' }}
 
     steps:
       - name: Checkout repository
@@ -1388,7 +1390,7 @@ jobs:
           path: build/signing/unsigned/*.exe
 
       - name: Sign server executable (SignPath)
-        if: runner.os == 'Windows'
+        if: runner.os == 'Windows' && env.HAS_SIGNPATH == 'true'
         uses: signpath/github-action-submit-signing-request@v2
         with:
           api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
@@ -1402,7 +1404,7 @@ jobs:
           output-artifact-directory: build/signing/signed
 
       - name: Replace server executable with signed version
-        if: runner.os == 'Windows'
+        if: runner.os == 'Windows' && env.HAS_SIGNPATH == 'true'
         shell: pwsh
         run: |
           Copy-Item "build\signing\signed\ldownload-server.exe" "target\${{ matrix.target }}\release\ldownload-server.exe" -Force
@@ -1519,6 +1521,7 @@ jobs:
     name: Build CLI (${{ matrix.platform }})
     needs: changes
     if: needs.changes.outputs.cli == 'true'
+    # 同 build-server-binaries：无 SignPath token 时跳过签名，构建不中断。
     strategy:
       fail-fast: false
       matrix:
@@ -1542,6 +1545,8 @@ jobs:
             runner: macos-latest
             target: aarch64-apple-darwin
     runs-on: ${{ matrix.runner }}
+    env:
+      HAS_SIGNPATH: ${{ secrets.SIGNPATH_API_TOKEN != '' }}
 
     steps:
       - name: Checkout repository
@@ -1604,7 +1609,7 @@ jobs:
           path: build/signing/unsigned/*.exe
 
       - name: Sign CLI executable (SignPath)
-        if: runner.os == 'Windows'
+        if: runner.os == 'Windows' && env.HAS_SIGNPATH == 'true'
         uses: signpath/github-action-submit-signing-request@v2
         with:
           api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
@@ -1618,7 +1623,7 @@ jobs:
           output-artifact-directory: build/signing/signed
 
       - name: Replace CLI executable with signed version
-        if: runner.os == 'Windows'
+        if: runner.os == 'Windows' && env.HAS_SIGNPATH == 'true'
         shell: pwsh
         run: |
           Copy-Item "build\signing\signed\ldownload.exe" "target\${{ matrix.target }}\release\ldownload.exe" -Force
