@@ -115,10 +115,83 @@ jobs:
           } >> "$GITHUB_OUTPUT"
           echo "::notice::Components changed in ${PREV:-<none>}..${TAG}: app=$APP extension=$EXTENSION server=$SERVER mobile=$MOBILE cli=$CLI"
 
+  # ── 质量门禁 Job 0: 全量测试 ──
+  # 发布前先跑完整测试套件：Rust 引擎（lib + 集成，双 feature 方向）+ API/Server/CLI
+  # + Flutter analyze + Dart 单测。任何失败即阻断发布，杜绝"带病发布"。
+  test:
+    name: Run Full Test Suite
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.app == 'true' || needs.changes.outputs.server == 'true' || needs.changes.outputs.cli == 'true' || needs.changes.outputs.mobile == 'true'
+    env:
+      # 集成测试需要本地 HTTP 服务绑定端口（rss_pipeline 等），CI runner 上无冲突。
+      RUST_TEST_THREADS: "4"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: rust-test-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            rust-test-${{ runner.os }}-
+
+      - name: Clippy (engine, all features)
+        run: cargo clippy -p ldown_engine --lib --features plugins,components -- -D warnings
+
+      - name: Test engine library (mobile feature-off path)
+        run: cargo test -p ldown_engine --lib
+
+      - name: Test engine library (desktop plugins+components path)
+        run: cargo test -p ldown_engine --lib --features plugins,components
+
+      - name: Test engine integration tests
+        run: cargo test -p ldown_engine --features plugins,components --test bt_file_selection --test bt_parts_reseed --test bt_sparse_add --test multi_cdn --test rss_pipeline --test site_auth_flow --test task_referrer_snapshot --test unattended_selection --test example_plugins --test fxplug_install --test plugin_manifest_flow --test plugin_lazy_resolve --test plugin_market
+
+      - name: Test API crate
+        run: cargo test -p ldown_api
+
+      - name: Test Server crate
+        run: cargo test -p ldown_server
+
+      - name: Test CLI crate
+        run: cargo test -p ldown_cli
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Flutter version & precache
+        run: |
+          flutter --version
+          flutter precache --linux
+
+      - name: Install Flutter dependencies
+        run: flutter pub get
+
+      - name: Flutter analyze
+        run: flutter analyze
+
+      - name: Flutter tests
+        run: flutter test
+
   # ── 并行 Job 1: 构建 Windows 安装包（x64 + ARM64）──
   build-windows:
     name: Build Windows (${{ matrix.arch }})
-    needs: [changes, build-extension]
+    needs: [changes, build-extension, test]
     # build-extension 在预览版也会运行以产出 artifact，因此 build-windows 始终可下载扩展包内嵌。
     if: needs.changes.outputs.app == 'true'
 
@@ -663,7 +736,7 @@ jobs:
   build-linux:
     name: Build Linux (x64)
     runs-on: ubuntu-22.04
-    needs: [changes, build-extension]
+    needs: [changes, build-extension, test]
     if: needs.changes.outputs.app == 'true'
 
     steps:
@@ -990,7 +1063,7 @@ jobs:
   # ── 并行 Job 4: 构建 macOS DMG + tar.gz（Intel x64 + Apple Silicon arm64）──
   build-macos:
     name: Build macOS (${{ matrix.arch }})
-    needs: [changes, build-extension]
+    needs: [changes, build-extension, test]
     if: needs.changes.outputs.app == 'true'
     strategy:
       fail-fast: false
@@ -1184,7 +1257,7 @@ jobs:
   build-android:
     name: Build Android APK
     runs-on: ubuntu-latest
-    needs: changes
+    needs: [changes, test]
     if: needs.changes.outputs.mobile == 'true'
 
     steps:
@@ -1334,7 +1407,7 @@ jobs:
   build-web:
     name: Build Server Web SPA
     runs-on: ubuntu-latest
-    needs: changes
+    needs: [changes, test]
     if: needs.changes.outputs.server == 'true'
 
     steps:
@@ -1371,7 +1444,7 @@ jobs:
   # 在编译期经 LDOWNLOAD_EMBED_WEBROOT 嵌进二进制，产物不再附带 web/ 目录。
   build-server-binaries:
     name: Build Server (${{ matrix.platform }})
-    needs: [changes, build-web]
+    needs: [changes, build-web, test]
     if: needs.changes.outputs.server == 'true'
     # secrets 不能用于 step 级 if，映射为 job 级 env 供 Windows 签名步骤判空跳过。
     # 未配置 SIGNPATH_API_TOKEN 时跳过签名，产出未签名二进制（构建不中断）。
@@ -1615,7 +1688,7 @@ jobs:
   # CLI 是单二进制（无 webroot），产物即 ldownload(.exe)。
   build-cli-binaries:
     name: Build CLI (${{ matrix.platform }})
-    needs: changes
+    needs: [changes, test]
     if: needs.changes.outputs.cli == 'true'
     # 同 build-server-binaries：无 SignPath token 时跳过签名，构建不中断。
     strategy:
