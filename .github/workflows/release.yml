@@ -120,7 +120,7 @@ jobs:
     name: Build Windows (${{ matrix.arch }})
     needs: [changes, build-extension]
     # build-extension 在预览版也会运行以产出 artifact，因此 build-windows 始终可下载扩展包内嵌。
-    if: needs.changes.outputs.app == 'true' && (needs.build-extension.result == 'success' || needs.build-extension.result == 'skipped')
+    if: needs.changes.outputs.app == 'true'
 
     strategy:
       fail-fast: false
@@ -395,7 +395,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: changes
     # 稳定版和预览版均构建扩展 artifact，但只有稳定版才向商店发布。
-    if: needs.changes.outputs.extension == 'true'
+    # 注意：app 变更也必须构建扩展——桌面安装包内嵌扩展包依赖此 job 的产物，
+    # 否则 app-only 发布时 build-extension 被跳过，桌面 job 的
+    # needs.build-extension.result 为 skipped，导致桌面端整体被跳过（v10.0.2 已踩坑）。
+    if: needs.changes.outputs.extension == 'true' || needs.changes.outputs.app == 'true'
 
     steps:
       - name: Checkout repository
@@ -661,7 +664,7 @@ jobs:
     name: Build Linux (x64)
     runs-on: ubuntu-22.04
     needs: [changes, build-extension]
-    if: needs.changes.outputs.app == 'true' && (needs.build-extension.result == 'success' || needs.build-extension.result == 'skipped')
+    if: needs.changes.outputs.app == 'true'
 
     steps:
       - name: Checkout repository
@@ -988,7 +991,7 @@ jobs:
   build-macos:
     name: Build macOS (${{ matrix.arch }})
     needs: [changes, build-extension]
-    if: needs.changes.outputs.app == 'true' && (needs.build-extension.result == 'success' || needs.build-extension.result == 'skipped')
+    if: needs.changes.outputs.app == 'true'
     strategy:
       fail-fast: false
       matrix:
