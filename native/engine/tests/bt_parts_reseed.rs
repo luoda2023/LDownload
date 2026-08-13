@@ -123,8 +123,12 @@ async fn reseed_with_parts_sidecar_passes_check_without_recreating_files() {
         stage_dir: content_dir.clone(),
     })
     .unwrap();
-    // b.bin 与 a、c 各共享一个边界 piece。
-    assert_eq!(segments, 2, "expected boundary bytes from both neighbours");
+    // b.bin 与邻居共享边界 piece。librqbit `create_torrent` 内部用 walkdir
+    // 遍历目录且**不排序**（readdir 顺序随文件系统/inode 分配变化，ext4 上
+    // 同一 runner 也可能不同），b 不一定居中，共享边界 piece 数可能是 1 或
+    // 2——此处只验证「至少识别出共享边界」；本测试的核心契约是第 129 行
+    // 之后的重命名续种成功，不依赖目录顺序。
+    assert!(segments >= 1, "expected at least one shared boundary piece");
 
     let factory = load_seed_factory(&sidecar, &save_dir).unwrap().unwrap();
 
