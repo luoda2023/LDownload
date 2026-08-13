@@ -188,10 +188,13 @@ impl Default for ProxyConfig {
 impl ProxyConfig {
     /// Build from a HashMap of DB config entries.
     pub fn from_config_map(map: &HashMap<String, String>) -> Self {
+        // 缺键（用户从未保存过代理设置）→ Auto：系统代理检测命中（如 VPN/
+        // 系统代理已开启）则慢任务经采样自动切换，否则等价直连、零开销。
+        // 显式存过 "none" 的仍解析为 None（用户明确选择直连），不受影响。
         let mode = map
             .get("proxy_mode")
             .map(|v| ProxyMode::parse_str(v))
-            .unwrap_or(ProxyMode::None);
+            .unwrap_or(ProxyMode::Auto);
         // 缺键或值损坏 → Http:这是设置页从未保存过代理类型时的历史默认值,
         // 且 `proxy_mode` 通常同时为 `none`,不会真的去连一个 HTTP 代理。
         let proxy_type = map
@@ -1445,7 +1448,8 @@ mod tests {
     fn proxy_config_from_config_map_empty() {
         let map = HashMap::new();
         let config = ProxyConfig::from_config_map(&map);
-        assert_eq!(config.mode, ProxyMode::None);
+        // 从未保存过代理设置 → Auto（系统代理命中则自动走，否则等价直连）。
+        assert_eq!(config.mode, ProxyMode::Auto);
         assert_eq!(config.proxy_type, ProxyType::Http);
         assert!(config.host.is_empty());
         assert_eq!(config.port, 0);

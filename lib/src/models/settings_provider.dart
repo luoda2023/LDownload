@@ -96,7 +96,8 @@ class SettingsProvider extends ChangeNotifier {
   bool _magnetAssocUserDisabled = false;
 
   // 代理设置
-  String _proxyMode = 'none'; // none / system / manual / auto
+  // 默认 auto：系统代理命中（VPN/系统代理已开启）则慢任务自动切换，否则等价直连。
+  String _proxyMode = 'auto'; // none / system / manual / auto
   String _proxyType = 'http'; // http / https / socks4 / socks5
   String _proxyHost = '';
   String _proxyPort = '';
