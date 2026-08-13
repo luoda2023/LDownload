@@ -2550,6 +2550,9 @@ impl DownloadManager {
         self.auto_proxy_cache.clear();
         self.auto_failover_pending.clear();
         crate::route_health::clear_all(&self.db);
+        // 预热本地代理探测缓存（Auto 候选源之一：TUN 模式/浏览器插件代理
+        // 不写注册表，靠常见端口探测兜底）。幂等，进程内只探测一次。
+        tokio::spawn(crate::proxy_config::prime_local_proxy_cache());
         Ok(())
     }
 

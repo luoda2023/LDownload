@@ -5,8 +5,12 @@
 //! - Building proxy URLs for reqwest (`to_proxy_url`)
 //! - Detecting Windows system proxy via the registry
 //! - Parsing a Windows `ProxyServer` registry value (multi-protocol format)
+//! - Probing common local proxy ports (Clash/v2rayN/SSR) + env-var proxy,
+//!   covering VPN setups that don't write the Windows registry (TUN mode /
+//!   browser extension proxies) — see [`prime_local_proxy_cache`]
 
 use std::collections::HashMap;
+use std::sync::{Mutex, OnceLock};
 
 use crate::downloader::DownloadError;
 use crate::logger::log_info;
@@ -447,6 +451,142 @@ pub fn detect_system_proxy() -> Result<Option<ProxyConfig>, DownloadError> {
     // On non-Windows, reqwest already reads HTTP_PROXY/HTTPS_PROXY env vars.
     // We don't need extra detection.
     Ok(None)
+}
+
+// ---------------------------------------------------------------------------
+// 本地代理端口探测（Auto 候选来源之一）
+// ---------------------------------------------------------------------------
+
+/// 常见本地代理端口 + 预设端点传输类型。
+///
+/// - Clash / Clash Verge 默认 mixed 端口（HTTP CONNECT 隧道对 HTTPS 目标
+///   可用）→ [`ProxyType::Http`]
+/// - v2rayN：HTTP 端口 → Http；SOCKS 端口 → Socks5
+///
+/// 端口被其他服务占用时，Auto 的 256KB 实采验证（validator 一致性 + 连接
+/// 成功）会拒绝切换，误判天然安全。
+pub const LOCAL_PROXY_CANDIDATES: &[(u16, ProxyType)] = &[
+    (7890, ProxyType::Http),   // Clash
+    (7897, ProxyType::Http),   // Clash Verge 新版
+    (7891, ProxyType::Http),   // Clash 备用
+    (10809, ProxyType::Http),  // v2rayN HTTP
+    (10808, ProxyType::Socks5), // v2rayN SOCKS
+    (1080, ProxyType::Http),   // 常见 mixed/SOCKS
+    (8888, ProxyType::Http),   // 常见代理/抓包工具
+    (2080, ProxyType::Http),   // shadowsocks
+];
+
+/// 进程级探测缓存（只探测一次；代理配置变更后由调用方重新探测）。
+static LOCAL_PROXY_CACHE: OnceLock<Mutex<Option<ProxyConfig>>> = OnceLock::new();
+
+/// 异步探测常见本地代理端口（127.0.0.1，TCP 300ms 超时），结果写入进程级
+/// 缓存（供 Auto 候选同步读取）。已命中则跳过；缓存为 None（上次探测时
+/// 端口未起）时允许在代理配置变更后重试。
+pub async fn prime_local_proxy_cache() {
+    if let Some(m) = LOCAL_PROXY_CACHE.get() {
+        let guard = m.lock().unwrap_or_else(|p| p.into_inner());
+        if guard.is_some() {
+            return;
+        }
+    }
+    let found = probe_local_proxy_now().await;
+    let m = LOCAL_PROXY_CACHE.get_or_init(|| Mutex::new(None));
+    let mut g = match m.lock() {
+        Ok(g) => g,
+        Err(poisoned) => poisoned.into_inner(),
+    };
+    *g = found;
+}
+
+async fn probe_local_proxy_now() -> Option<ProxyConfig> {
+    for &(port, ref proxy_type) in LOCAL_PROXY_CANDIDATES {
+        let ok = tokio::time::timeout(
+            std::time::Duration::from_millis(300),
+            tokio::net::TcpStream::connect(("127.0.0.1", port)),
+        )
+        .await
+        .map(|r| r.is_ok())
+        .unwrap_or(false);
+        if ok {
+            log_info!(
+                "[proxy] 探测到本地代理端口 127.0.0.1:{port}（{}）",
+                proxy_type.as_str()
+            );
+            return Some(ProxyConfig {
+                mode: ProxyMode::Manual,
+                proxy_type: proxy_type.clone(),
+                host: "127.0.0.1".to_string(),
+                port,
+                username: String::new(),
+                password: String::new(),
+                no_proxy_list: String::new(),
+            });
+        }
+    }
+    None
+}
+
+/// 同步读本地代理探测缓存（`None` = 未探测或未命中）。
+/// 供 [`crate::auto_proxy::resolve_candidate`] 等同步路径调用。
+pub fn local_proxy_cached() -> Option<ProxyConfig> {
+    let m = LOCAL_PROXY_CACHE.get()?;
+    let g = match m.lock() {
+        Ok(g) => g,
+        Err(poisoned) => poisoned.into_inner(),
+    };
+    g.clone()
+}
+
+/// 环境变量代理：HTTPS_PROXY > HTTP_PROXY > ALL_PROXY（大小写各试一次）。
+/// 部分 VPN 客户端/手动配置通过环境变量暴露代理，注册表与本地端口都未
+/// 命中时兜底。
+pub fn proxy_from_env() -> Option<ProxyConfig> {
+    for key in [
+        "HTTPS_PROXY",
+        "https_proxy",
+        "HTTP_PROXY",
+        "http_proxy",
+        "ALL_PROXY",
+        "all_proxy",
+    ] {
+        if let Some(cfg) = std::env::var(key)
+            .ok()
+            .and_then(|v| parse_env_proxy_url(&v))
+        {
+            return Some(cfg);
+        }
+    }
+    None
+}
+
+/// 解析环境变量代理 URL：`http://host:port`、`socks5://host:port` 或裸
+/// `host:port`（缺 scheme 按 HTTP）。认证信息（user:pass@）暂不支持，
+/// 返回 None 以免构造出错误的代理 URL。
+fn parse_env_proxy_url(v: &str) -> Option<ProxyConfig> {
+    let s = v.trim();
+    if s.is_empty() {
+        return None;
+    }
+    let (scheme, rest) = match s.find("://") {
+        Some(i) => (&s[..i], &s[i + 3..]),
+        None => ("http", s),
+    };
+    let proxy_type = ProxyType::parse_str(scheme)?;
+    let (host, port) = rest.rsplit_once(':')?;
+    let port: u16 = port.parse().ok()?;
+    let host = host.to_string();
+    if host.is_empty() || host.contains('@') {
+        return None; // 空 host 或带认证 → 放弃（不猜）
+    }
+    Some(ProxyConfig {
+        mode: ProxyMode::Manual,
+        proxy_type,
+        host,
+        port,
+        username: String::new(),
+        password: String::new(),
+        no_proxy_list: String::new(),
+    })
 }
 
 /// Parse the Windows `ProxyServer` registry value.
@@ -1331,8 +1471,9 @@ pub async fn test_proxy_connection(
 mod tests {
     use super::{
         ProxyConfig, ProxyMode, ProxyType, base64_encode, is_proxy_tls_handshake_failure,
-        parse_connect_status_line, parse_host_port, parse_multi_protocol_proxy,
-        parse_windows_proxy_server, percent_decode, percent_encode_userinfo, socks4_connect_sync,
+        parse_connect_status_line, parse_env_proxy_url, parse_host_port,
+        parse_multi_protocol_proxy, parse_windows_proxy_server, percent_decode,
+        percent_encode_userinfo, socks4_connect_sync,
     };
     use std::collections::HashMap;
 
@@ -2233,5 +2374,31 @@ mod tests {
         let header = b"garbage-without-code\r\n\r\n";
         let (code, _line) = parse_connect_status_line(header);
         assert_eq!(code, 0);
+    }
+
+    // ---- env 代理解析 ------------------------------------------------------
+
+    #[test]
+    fn parse_env_proxy_url_variants() {
+        // 显式 scheme。
+        let http = parse_env_proxy_url("http://127.0.0.1:7890").expect("http");
+        assert_eq!(http.proxy_type, ProxyType::Http);
+        assert_eq!(http.host, "127.0.0.1");
+        assert_eq!(http.port, 7890);
+        assert_eq!(http.mode, ProxyMode::Manual);
+        // SOCKS5。
+        let socks = parse_env_proxy_url("socks5://127.0.0.1:10808").expect("socks5");
+        assert_eq!(socks.proxy_type, ProxyType::Socks5);
+        // socks5h 别名归一为 Socks5（远端解析由 Socks5 承担）。
+        let socksh = parse_env_proxy_url("socks5h://127.0.0.1:1080").expect("socks5h");
+        assert_eq!(socksh.proxy_type, ProxyType::Socks5);
+        // 裸 host:port 按 HTTP。
+        let bare = parse_env_proxy_url("127.0.0.1:10809").expect("bare");
+        assert_eq!(bare.proxy_type, ProxyType::Http);
+        // 非法/带认证 → None（不猜）。
+        assert!(parse_env_proxy_url("").is_none());
+        assert!(parse_env_proxy_url("no-port").is_none());
+        assert!(parse_env_proxy_url("http://user:pass@127.0.0.1:7890").is_none());
+        assert!(parse_env_proxy_url("ftp://127.0.0.1:21").is_none(), "未知 scheme 拒绝");
     }
 }

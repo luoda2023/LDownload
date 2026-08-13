@@ -225,9 +225,14 @@ impl DecisionCache {
 // 候选代理解析
 // ---------------------------------------------------------------------------
 
-/// 解析 Auto 模式的候选代理：优先系统代理，无系统代理时回退用户已填的
-/// 手动地址字段。两者皆无 → `None`（Auto 完全等价直连，零开销短路）。
-/// 附带候选来源，决定 wire 标签后缀。
+/// 解析 Auto 模式的候选代理（按优先级）：
+/// 1. 系统代理（Windows 注册表）——强信号，[`CandidateSource::System`]；
+/// 2. 本地常见代理端口探测缓存（Clash/v2rayN/SSR，TUN/浏览器插件不写
+///    注册表时兜底）——[`CandidateSource::ManualFields`]；
+/// 3. 环境变量代理（HTTP_PROXY/HTTPS_PROXY/ALL_PROXY）；
+/// 4. 用户手动填写的地址字段。
+///
+/// 皆无 → `None`（Auto 完全等价直连，零开销短路）。
 ///
 /// 仅对 `mode == Auto` 的配置有意义；其余模式恒返回 `None`。
 pub fn resolve_candidate(config: &ProxyConfig) -> Option<(ProxyConfig, CandidateSource)> {
@@ -236,6 +241,12 @@ pub fn resolve_candidate(config: &ProxyConfig) -> Option<(ProxyConfig, Candidate
     }
     if let Ok(Some(sys)) = detect_system_proxy() {
         return Some((sys, CandidateSource::System));
+    }
+    if let Some(local) = crate::proxy_config::local_proxy_cached() {
+        return Some((local, CandidateSource::ManualFields));
+    }
+    if let Some(env) = crate::proxy_config::proxy_from_env() {
+        return Some((env, CandidateSource::ManualFields));
     }
     if !config.host.is_empty() && config.port != 0 {
         let mut manual = config.clone();
