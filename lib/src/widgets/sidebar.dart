@@ -749,7 +749,7 @@ class _SectionHeader extends StatelessWidget {
       child: Text(
         title.toUpperCase(),
         style: TextStyle(
-          fontSize: 9.5,
+          fontSize: 10.5,
           fontWeight: FontWeight.w600,
           color: c.textMuted,
           letterSpacing: 0.9,
@@ -803,7 +803,7 @@ class _CollapsibleSectionHeaderState extends State<_CollapsibleSectionHeader> {
               Text(
                 widget.title.toUpperCase(),
                 style: TextStyle(
-                  fontSize: 9.5,
+                  fontSize: 10.5,
                   fontWeight: FontWeight.w600,
                   color: _isHovered ? c.textSecondary : c.textMuted,
                   letterSpacing: 0.9,
@@ -946,7 +946,7 @@ class _NavItemState extends State<_NavItem> {
                 children: [
                   Icon(
                     widget.icon,
-                    size: 14,
+                    size: 15,
                     color: selected ? c.accent : c.textSecondary,
                   ),
                   if (statusDot != null)
@@ -958,7 +958,7 @@ class _NavItemState extends State<_NavItem> {
                 child: Text(
                   widget.label,
                   style: TextStyle(
-                    fontSize: 12.5,
+                    fontSize: 13.5,
                     // 显式行高：MiSans 默认行高 ~1.45× 会让文字视觉偏上
                     height: 1.2,
                     color: selected ? c.accent : c.textSecondary,
@@ -975,7 +975,7 @@ class _NavItemState extends State<_NavItem> {
                 Text(
                   count.toString(),
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: 12,
                     height: 1.2,
                     color: selected ? c.accent : c.textMuted,
                     fontFeatures: const [FontFeature.tabularFigures()],
@@ -1105,7 +1105,7 @@ class _QueueNavItemState extends State<_QueueNavItem> {
                 queue.queueId == kLaterQueueId
                     ? LucideIcons.clock
                     : LucideIcons.layers,
-                size: 14,
+                size: 15,
                 color: selected
                     ? c.accent
                     : queue.isRunning
@@ -1117,7 +1117,7 @@ class _QueueNavItemState extends State<_QueueNavItem> {
                 child: Text(
                   queueDisplayName(s, queue),
                   style: TextStyle(
-                    fontSize: 12.5,
+                    fontSize: 13.5,
                     // 显式行高：MiSans 默认行高会让文字视觉偏上
                     height: 1.2,
                     color: selected
@@ -1173,7 +1173,7 @@ class _QueueNavItemState extends State<_QueueNavItem> {
                 Text(
                   widget.count.toString(),
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: 12,
                     height: 1.2,
                     color: selected ? c.accent : c.textMuted,
                     fontFeatures: const [FontFeature.tabularFigures()],
@@ -1346,7 +1346,7 @@ class _RssNavItemState extends State<_RssNavItem> {
               children: [
                 Icon(
                   unhealthy ? LucideIcons.circleAlert : LucideIcons.rss,
-                  size: 14,
+                  size: 15,
                   color: unhealthy ? AppColors.red : textColor,
                 ),
                 const SizedBox(width: 8),
@@ -1354,7 +1354,7 @@ class _RssNavItemState extends State<_RssNavItem> {
                   child: Text(
                     label,
                     style: TextStyle(
-                      fontSize: 12.5,
+                      fontSize: 13.5,
                       // 显式行高：MiSans 默认行高会让文字视觉偏上
                       height: 1.2,
                       color: textColor,
@@ -1404,7 +1404,7 @@ class _RssNavItemState extends State<_RssNavItem> {
                     child: Text(
                       source.unreadCount.toString(),
                       style: TextStyle(
-                        fontSize: 10.5,
+                        fontSize: 11.5,
                         height: 1.2,
                         color: c.accent,
                         fontFeatures: const [FontFeature.tabularFigures()],
