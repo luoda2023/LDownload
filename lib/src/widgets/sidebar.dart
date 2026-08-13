@@ -919,65 +919,65 @@ class _NavItemState extends State<_NavItem> {
                 : Colors.transparent,
             borderRadius: m.brMd,
           ),
-          child: Stack(
+          child: Row(
             children: [
-              // 选中态左侧 accent 指示条（Positioned 覆盖，选中/未选中不位移）
-              if (selected)
-                Positioned(
-                  left: 0,
-                  top: 9,
-                  bottom: 9,
-                  width: 2.5,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: c.accent,
-                      borderRadius: m.brProgress,
-                    ),
-                  ),
-                ),
-              Row(
+              // 选中态左侧 accent 指示条 —— 用 SizedBox 恒定占位 2.5px，
+              // 选中时染色，未选中时透明，确保图标位置选中/未选中不位移。
+              // 注：之前用 Stack + Positioned(left:0) 方案会让 Row 因
+              // mainAxisSize.max 占满 Stack 宽度、起点 left=0，把指示条
+              // 完全遮住（v10.0.5 现场表现为「指示条错位」）。
+              SizedBox(
+                width: 2.5,
+                height: 16,
+                child: selected
+                    ? DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: c.accent,
+                          borderRadius: m.brProgress,
+                        ),
+                      )
+                    : null,
+              ),
+              const SizedBox(width: 7),
+              // 活跃下载点 or 图标
+              Stack(
+                clipBehavior: Clip.none,
                 children: [
-                  // 活跃下载点 or 图标
-                  Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      Icon(
-                        widget.icon,
-                        size: 14,
-                        color: selected ? c.accent : c.textSecondary,
-                      ),
-                      if (statusDot != null)
-                        Positioned(top: -2, right: -3, child: statusDot),
-                    ],
+                  Icon(
+                    widget.icon,
+                    size: 14,
+                    color: selected ? c.accent : c.textSecondary,
                   ),
-                  const SizedBox(width: 9),
-                  Expanded(
-                    child: Text(
-                      widget.label,
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        color: selected ? c.accent : c.textSecondary,
-                        fontWeight: selected
-                            ? FontWeight.w600
-                            : FontWeight.normal,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  if (count != null && count > 0) ...[
-                    const SizedBox(width: 8),
-                    Text(
-                      count.toString(),
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: selected ? c.accent : c.textMuted,
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                      ),
-                    ),
-                  ],
+                  if (statusDot != null)
+                    Positioned(top: -2, right: -3, child: statusDot),
                 ],
               ),
+              const SizedBox(width: 9),
+              Expanded(
+                child: Text(
+                  widget.label,
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    color: selected ? c.accent : c.textSecondary,
+                    fontWeight: selected
+                        ? FontWeight.w600
+                        : FontWeight.normal,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (count != null && count > 0) ...[
+                const SizedBox(width: 8),
+                Text(
+                  count.toString(),
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: selected ? c.accent : c.textMuted,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                ),
+              ],
             ],
           ),
         ),
