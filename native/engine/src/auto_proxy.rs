@@ -6,7 +6,10 @@
 //! 且直连态保留多 CDN 聚合资格——这是相对 System 模式的核心收益：System
 //! 模式会把全部任务的 CDN 聚合一刀切禁用）。仅当任务运行一段时间后仍然
 //! 慢（见 [`AutoSwitchState`] 的守卫清单），才经候选代理拉 256KB 采样；
-//! 代理单连接吞吐 ≥ 2× 直连单连接均速才热切换（[`NodePool`] 换 SYS
+//! 切换判据见 [`should_switch`]：手动字段候选须达 2× 直连单连接均速
+//! （滞回防震荡）；**系统代理命中**（用户已显式开启系统代理/VPN）时只要
+//! 采样连通即切——浏览器 16 连接聚合 3M/s 而单连接仅几百 KB/s 的场景下，
+//! 2× 单连接阈值会让 Auto 永远卡在直连。切换后 [`NodePool`] 换 SYS
 //! client，新分段自然走代理，已下字节零丢弃）。
 //!
 //! # 决策缓存（两层，风险不对称）
@@ -415,6 +418,18 @@ fn proxy_wins(probe_bps: f64, baseline_per_conn_bps: f64) -> bool {
     probe_bps > 0.0 && probe_bps >= baseline_per_conn_bps * ADVANTAGE_RATIO
 }
 
+/// 最终切换判定（proxy_wins + 系统代理强信号例外）。
+///
+/// 系统代理命中（`CandidateSource::System`）时，用户已显式开启系统代理
+/// （VPN/系统代理），直连又确认慢（< SLOW_BPS）——此时只要采样连通即切，
+/// 不再要求 2× 单连接优势：浏览器 16 连接聚合 3M/s 而单连接只有几百 KB/s
+/// 的场景下，2× 阈值会让 Auto 永远卡在直连。手动字段回退候选是弱信号，
+/// 仍要求 proxy_wins 的 2× 滞回。
+fn should_switch(cfg_source: CandidateSource, probe_bps: f64, baseline_per_conn_bps: f64) -> bool {
+    proxy_wins(probe_bps, baseline_per_conn_bps)
+        || (cfg_source == CandidateSource::System && probe_bps > 0.0)
+}
+
 // ---------------------------------------------------------------------------
 // coordinator 侧状态机
 // ---------------------------------------------------------------------------
@@ -576,7 +591,7 @@ impl AutoSwitchState {
                     crate::route_health::record_no_switch(&self.ctx.host, db);
                     self.publish(db, sink, task_id, route::DIRECT_PINNED).await;
                     self.phase = Phase::Done;
-                } else if proxy_wins(outcome.bps, baseline) {
+                } else if should_switch(self.ctx.source, outcome.bps, baseline) {
                     log_info!(
                         "[auto-proxy] task {} host {} 代理胜出（{:.0} vs 基线 {:.0} B/s/conn，{}），热切换",
                         task_id,
@@ -1044,6 +1059,25 @@ mod tests {
         assert!(proxy_wins(800_000.0, 400_000.0), "恰 2x 应切换");
         assert!(!proxy_wins(700_000.0, 400_000.0), "1.75x 不切换");
         assert!(!proxy_wins(0.0, 0.0), "采样失败（0 bps）不切换");
+    }
+
+    /// 系统代理命中 + 采样连通 → 即切（不强求 2×：单连接一般、多连接聚合
+    /// 快的代理是浏览器/下载器的常见形态，2× 会卡死 Auto 于直连）。
+    #[test]
+    fn should_switch_system_source_switches_on_probe_connect() {
+        assert!(
+            should_switch(CandidateSource::System, 100_000.0, 400_000.0),
+            "系统代理命中且采样连通即切，即使单连接只有直连 1/4"
+        );
+        assert!(
+            !should_switch(CandidateSource::System, 0.0, 400_000.0),
+            "采样失败（0 bps）系统代理也不切"
+        );
+        // 手动字段候选仍是弱信号：保留 2× 滞回。
+        assert!(!should_switch(CandidateSource::ManualFields, 700_000.0, 400_000.0));
+        assert!(should_switch(CandidateSource::ManualFields, 800_000.0, 400_000.0));
+        // 既有 2× 判据对系统代理同样生效（快得多时无论来源都切）。
+        assert!(should_switch(CandidateSource::System, 1_000_000.0, 400_000.0));
     }
 
     // ---- 候选解析 ----------------------------------------------------------
