@@ -24,7 +24,7 @@ class SettingsProvider extends ChangeNotifier {
 
   String _defaultSaveDir = _platformDefaultSaveDir();
   int _defaultSegments = 0; // 0 = 自动（由 Rust segment_advisor 动态计算）
-  int _autoMaxConnections = 16; // 自动模式下智能调度的最大连接数上限
+  int _autoMaxConnections = 32; // 自动模式下智能调度的最大连接数上限（出厂 32，超 IDM 默认 16）
   bool _cdnMultiEnabled = false; // 多 CDN 节点并发下载（实验性，P0）：同一文件多节点并发拉取
   int _cdnMaxNodes = 0; // 单任务最多钉定的 CDN 节点数，0..=8；0 = 自动档
   int _connPolicyCount = 0; // 已学习的域名连接上限记录数（未过期）

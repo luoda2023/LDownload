@@ -92,10 +92,15 @@ const DEFAULT_MAX_TASK_AUTO_RETRIES: i32 = 3;
 /// Auto 模式最大连接数上限的默认值（config `auto_max_connections`，经
 /// [`DownloadManager::set_auto_max_connections`] 注入）。
 ///
-/// 语义：advisor 推荐值经此裁剪——`effective = min(advisor, cap)`。
-/// 默认 16 而非 advisor 的绝对上限 64：避免对连接敏感的服务器/CDN 上来就
-/// 32/64 并发触发风控；需要更高并发的用户可在设置中显式调大。
-pub(crate) const DEFAULT_AUTO_MAX_CONNECTIONS: i32 = 16;
+/// 语义：advisor 推荐值经此裁剪——`effective = min(advisor, cap)`；
+/// 实际并发还受平台 io_cap（cpu_cores×4）与 `MAX_SEGMENTS=64` 双重钳制，
+/// 单核/双核机器自然收敛到更小值，不会盲目压满。
+///
+/// 32 = 超 IDM 默认（16）的出厂档：现代宽带（500M~千兆）+ 富余服务器
+/// 带宽下，16 连接往往吃不满；动态 ramp（2 连接起步、健康才爬升）与
+/// 域名连接上限学习（`clear_domain_conn_caps`）共同保证对连接敏感服务器
+/// 不触发风控。需要更高并发的用户可在设置中显式调大（≤64）。
+pub(crate) const DEFAULT_AUTO_MAX_CONNECTIONS: i32 = 32;
 
 /// 自动重试基础延迟（秒）的默认值。实际延迟 = base × attempt，即 5s / 10s / 15s 递增。
 ///

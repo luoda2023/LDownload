@@ -4694,7 +4694,7 @@ class _AutoMaxConnSelector extends StatelessWidget {
       presets: const [4, 8, 16, 32, 64],
       min: 1,
       max: 64,
-      fallback: 16,
+      fallback: 32,
       onChanged: settingsProvider.setAutoMaxConnections,
     );
   }
