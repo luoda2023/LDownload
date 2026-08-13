@@ -16,7 +16,6 @@ import 'package:flutter/material.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../../theme/app_colors.dart';
-import '../../theme/app_fonts.dart';
 import '../../theme/flux_theme_tokens.dart';
 import '../../widgets/file_type_icon.dart';
 import '../native_overlay/offscreen_rasterizer.dart';
@@ -209,7 +208,7 @@ class _ToastCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontFamily: appFontFamily,
+                        fontFamily: 'MiSans',
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
                         color: c.textPrimary,
@@ -272,7 +271,7 @@ class _ToastCard extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              fontFamily: appFontFamily,
+                              fontFamily: 'MiSans',
                               fontSize: 12.5,
                               fontWeight: FontWeight.w500,
                               color: c.textPrimary,
@@ -284,7 +283,7 @@ class _ToastCard extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              fontFamily: appFontFamily,
+                              fontFamily: 'MiSans',
                               fontSize: 11,
                               color: c.textMuted,
                             ),
@@ -380,7 +379,7 @@ class _ActionButton extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              fontFamily: appFontFamily,
+              fontFamily: 'MiSans',
               fontSize: 12,
               fontWeight: FontWeight.w500,
               color: fg,
