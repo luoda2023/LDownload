@@ -920,6 +920,7 @@ class _NavItemState extends State<_NavItem> {
             borderRadius: m.brMd,
           ),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // 选中态左侧 accent 指示条 —— 用 SizedBox 恒定占位 2.5px，
               // 选中时染色，未选中时透明，确保图标位置选中/未选中不位移。
@@ -958,6 +959,8 @@ class _NavItemState extends State<_NavItem> {
                   widget.label,
                   style: TextStyle(
                     fontSize: 12.5,
+                    // 显式行高：MiSans 默认行高 ~1.45× 会让文字视觉偏上
+                    height: 1.2,
                     color: selected ? c.accent : c.textSecondary,
                     fontWeight: selected
                         ? FontWeight.w600
@@ -973,6 +976,7 @@ class _NavItemState extends State<_NavItem> {
                   count.toString(),
                   style: TextStyle(
                     fontSize: 11,
+                    height: 1.2,
                     color: selected ? c.accent : c.textMuted,
                     fontFeatures: const [FontFeature.tabularFigures()],
                   ),
@@ -1094,6 +1098,7 @@ class _QueueNavItemState extends State<_QueueNavItem> {
             borderRadius: m.brMd,
           ),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // 已停止的队列整行弱化，与运行中队列形成明显层次
               Icon(
@@ -1113,6 +1118,8 @@ class _QueueNavItemState extends State<_QueueNavItem> {
                   queueDisplayName(s, queue),
                   style: TextStyle(
                     fontSize: 12.5,
+                    // 显式行高：MiSans 默认行高会让文字视觉偏上
+                    height: 1.2,
                     color: selected
                         ? c.accent
                         : queue.isRunning
@@ -1167,6 +1174,7 @@ class _QueueNavItemState extends State<_QueueNavItem> {
                   widget.count.toString(),
                   style: TextStyle(
                     fontSize: 11,
+                    height: 1.2,
                     color: selected ? c.accent : c.textMuted,
                     fontFeatures: const [FontFeature.tabularFigures()],
                   ),
@@ -1334,6 +1342,7 @@ class _RssNavItemState extends State<_RssNavItem> {
               borderRadius: m.brMd,
             ),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Icon(
                   unhealthy ? LucideIcons.circleAlert : LucideIcons.rss,
@@ -1346,6 +1355,8 @@ class _RssNavItemState extends State<_RssNavItem> {
                     label,
                     style: TextStyle(
                       fontSize: 12.5,
+                      // 显式行高：MiSans 默认行高会让文字视觉偏上
+                      height: 1.2,
                       color: textColor,
                       fontWeight: selected
                           ? FontWeight.w500
@@ -1394,6 +1405,7 @@ class _RssNavItemState extends State<_RssNavItem> {
                       source.unreadCount.toString(),
                       style: TextStyle(
                         fontSize: 10.5,
+                        height: 1.2,
                         color: c.accent,
                         fontFeatures: const [FontFeature.tabularFigures()],
                       ),
