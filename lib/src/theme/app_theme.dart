@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
+import 'app_fonts.dart';
 import 'flux_theme_tokens.dart';
 
-/// MiSans 字体族名（与 pubspec.yaml 中声明的 family 一致）
-const _fontFamily = 'MiSans';
+/// 全局字体族：宋体（按平台取系统宋体，见 [appFontFamily]）。
 
 /// 构建紧凑的按钮尺寸主题
 ShadButtonSizesTheme _buttonSizes(FluxThemeTokens tokens) {
@@ -114,7 +114,7 @@ ShadThemeData buildThemeFromTokens(FluxThemeTokens tokens) {
       brightness: Brightness.dark,
       colorScheme: colorScheme,
       radius: BorderRadius.circular(tokens.metric.radiusMd),
-      textTheme: ShadTextTheme(family: _fontFamily),
+      textTheme: ShadTextTheme(family: appFontFamily),
       buttonSizesTheme: _buttonSizes(tokens),
       ghostButtonTheme: ShadButtonTheme(
         hoverBackgroundColor: tokens.elementHover,
@@ -162,7 +162,7 @@ ShadThemeData buildThemeFromTokens(FluxThemeTokens tokens) {
       brightness: Brightness.light,
       colorScheme: colorScheme,
       radius: BorderRadius.circular(tokens.metric.radiusMd),
-      textTheme: ShadTextTheme(family: _fontFamily),
+      textTheme: ShadTextTheme(family: appFontFamily),
       buttonSizesTheme: _buttonSizes(tokens),
       ghostButtonTheme: ShadButtonTheme(
         hoverBackgroundColor: tokens.elementHover,
@@ -222,13 +222,13 @@ ShadToastTheme _primaryToastTheme(FluxThemeTokens tokens) {
     closeIconPosition: const ShadPosition(top: 0, bottom: 0, right: 8),
     mainAxisSize: MainAxisSize.min,
     titleStyle: TextStyle(
-      fontFamily: _fontFamily,
+      fontFamily: appFontFamily,
       fontSize: 13,
       fontWeight: FontWeight.w500,
       color: tokens.textPrimary,
     ),
     descriptionStyle: TextStyle(
-      fontFamily: _fontFamily,
+      fontFamily: appFontFamily,
       fontSize: 12,
       color: tokens.textSecondary,
     ),
@@ -253,13 +253,13 @@ ShadToastTheme _destructiveToastTheme(
     mainAxisSize: MainAxisSize.min,
     closeIconPosition: const ShadPosition(top: 0, bottom: 0, right: 8),
     titleStyle: TextStyle(
-      fontFamily: _fontFamily,
+      fontFamily: appFontFamily,
       fontSize: 13,
       fontWeight: FontWeight.w500,
       color: colorScheme.destructiveForeground,
     ),
     descriptionStyle: TextStyle(
-      fontFamily: _fontFamily,
+      fontFamily: appFontFamily,
       fontSize: 12,
       color: colorScheme.destructiveForeground.withValues(alpha: 0.9),
     ),

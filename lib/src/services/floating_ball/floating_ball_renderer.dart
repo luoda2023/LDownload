@@ -17,6 +17,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:shadcn_ui/shadcn_ui.dart';
 
+import '../../theme/app_fonts.dart';
 import '../../theme/flux_theme_tokens.dart';
 import '../app_icon_service.dart';
 import '../log_service.dart';
@@ -262,7 +263,7 @@ class _BallWidget extends StatelessWidget {
                     '${spec!.activeCount > 99 ? '99+' : spec.activeCount}',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontFamily: 'MiSans',
+                      fontFamily: appFontFamily,
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
                       color: _contrastOn(accent),
@@ -340,7 +341,7 @@ class _BallWidget extends StatelessWidget {
               compact,
               maxLines: 1,
               style: TextStyle(
-                fontFamily: 'MiSans',
+                fontFamily: appFontFamily,
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
                 color: tokens.textPrimary,
