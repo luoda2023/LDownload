@@ -908,7 +908,7 @@ class _NavItemState extends State<_NavItem> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 120),
           curve: Curves.easeOut,
-          height: 34,
+          height: 36,
           margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
           padding: const EdgeInsets.symmetric(horizontal: 8),
           decoration: BoxDecoration(
@@ -1086,7 +1086,7 @@ class _QueueNavItemState extends State<_QueueNavItem> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 120),
           curve: Curves.easeOut,
-          height: 34,
+          height: 36,
           margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
           padding: const EdgeInsets.symmetric(horizontal: 8),
           decoration: BoxDecoration(
@@ -1330,7 +1330,7 @@ class _RssNavItemState extends State<_RssNavItem> {
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 120),
             curve: Curves.easeOut,
-            height: 34,
+            height: 36,
             margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
             padding: const EdgeInsets.symmetric(horizontal: 8),
             decoration: BoxDecoration(
