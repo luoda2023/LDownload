@@ -1084,11 +1084,11 @@ class _HomePageState extends State<HomePage> {
             ),
             // 拖拽命中浮层：骑在面板边界上（1px 分隔线居中），不占布局宽度；
             // 平时全透明，悬浮/拖拽时浮现淡线提示。贯穿 titlebar/header
-            // （高亮与分隔线全高一致），仅避开 StatusBar(28)。
+            // （高亮与分隔线全高一致），仅避开 StatusBar(38)。
             if (_sidebarVisible)
               Positioned(
                 top: 0,
-                bottom: 28,
+                bottom: 38,
                 left: _sidebarWidth - (_ResizeHandle.hitSize - 1) / 2,
                 width: _ResizeHandle.hitSize,
                 child: _ResizeHandle(
@@ -1110,7 +1110,7 @@ class _HomePageState extends State<HomePage> {
                 // 详情面板从 header 下方开始（上方 40px 是横跨的 HeaderBar），
                 // 高亮线不侵入 header 区
                 top: 40,
-                bottom: 28,
+                bottom: 38,
                 right: _detailWidth - (_ResizeHandle.hitSize - 1) / 2,
                 width: _ResizeHandle.hitSize,
                 child: _ResizeHandle(

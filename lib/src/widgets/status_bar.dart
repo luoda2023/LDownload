@@ -286,7 +286,7 @@ class _StatusBarState extends State<StatusBar> {
         );
 
         return Container(
-          height: 28,
+          height: 38,
           padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
             color: c.surface1,
